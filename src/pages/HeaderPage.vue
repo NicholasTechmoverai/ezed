@@ -1,49 +1,34 @@
 <template>
   <header class="app-header">
-    <n-space  justify="space-between" align="center">
-      <!-- Brand -->
-      <router-link to="/" class="brand-link">
-        <n-gradient-text :size="24" type="primary" class="font-bold">
-          SOS
-        </n-gradient-text>
-      </router-link>
+    <n-space justify="space-between" align="center">
+      <div>
+        <logo /><span class="text-xl text-gray-500 opacity-80">/</span>
+        <n-button class="opacity-80" size="tiny" secondary @click="openTab(activePage.key)">
+          <n-icon>
+            <component :is="activePage.icon" />
+          </n-icon>
+          {{ activePage.label }}
+        </n-button>
+        <div>
 
-      <!-- Right Section -->
+        </div>
+      </div>
       <n-space align="center" size="small">
-        <!-- Dark Mode Toggle -->
-        <n-tooltip :content="isDark ? 'Switch to light mode' : 'Switch to dark mode'" placement="bottom">
-          <template #trigger>
-            <n-switch
-              v-model:value="isDark"
-              :rail-style="railStyle"
-              aria-label="Toggle Theme"
-              size="small"
-            >
-              <template #checked-icon>
-                <n-icon :component="MoonOutline" size="18" />
-              </template>
-              <template #unchecked-icon>
-                <n-icon :component="SunnyOutline" size="18" />
-              </template>
-            </n-switch>
+        <n-switch v-model:value="isDark" size="small">
+          <template #checked-icon>
+            <n-icon :component="MoonOutline" />
           </template>
-        </n-tooltip>
+          <template #unchecked-icon>
+            <n-icon :component="SunnyOutline" />
+          </template>
+        </n-switch>
 
-        <!-- User Dropdown -->
-        <!-- v-if="userStore.isAuthenticated" -->
 
-        <n-dropdown
-          :options="userMenuOptions"
-          placement="bottom-end"
-          trigger="click"
-        >
+
+        <n-dropdown :options="userMenuOptions" size="small" placement="bottom-end" trigger="click">
           <n-button quaternary circle>
             <template #icon>
-              <n-avatar
-                size="small"
-                :src="userStore.avatar"
-                fallback-src="/default-avatar.png"
-              />
+              <n-avatar size="small" :src="userStore.avatar" fallback-src="/default-avatar.png" />
             </template>
           </n-button>
         </n-dropdown>
@@ -53,15 +38,16 @@
 </template>
 
 <script setup>
-import { ref, watch, h } from 'vue'
+import { ref, watch, h, computed } from 'vue'
 import { useThemeStore } from '@/store/themeStore'
 import { useUserStore } from '@/store/userStore'
 import { MoonOutline, SunnyOutline } from '@vicons/ionicons5'
-
+import Logo from './Logo.vue'
 import {
   Pencil as EditIcon,
   LogOutOutline as LogoutIcon,
   PersonCircleOutline as UserIcon,
+  BriefcaseOutline
 } from "@vicons/ionicons5";
 import {
   NGradientText,
@@ -74,13 +60,28 @@ import {
   NDropdown
 } from 'naive-ui'
 
+import { useRoute } from 'vue-router'
+import { allSites, openTab } from '../composables'
+
+const route = useRoute()
+
+const activePage = computed(() => {
+  const segments = route.path.split('/')
+  const match = allSites.find(s => s.key === segments[2])
+  return match || {
+    label: 'Main',
+    icon: BriefcaseOutline,
+  }
+})
+
+watch(() => route.path, (newPath) => {
+  console.log('New value after /h/ is:', activePage.value)
+})
 const themeStore = useThemeStore()
 const userStore = useUserStore()
 
-// Dark mode toggle reactive state
 const isDark = ref(themeStore.theme === 'dark')
 
-// Keep ref in sync with store
 watch(
   () => themeStore.theme,
   (newTheme) => {
@@ -89,39 +90,36 @@ watch(
   { immediate: true }
 )
 
-// Update theme in store when ref changes
 watch(isDark, (val) => {
   themeStore.setTheme(val ? 'dark' : 'light')
 })
 
-// Rail style for switch
 const railStyle = ({ focused, checked }) => ({
   backgroundColor: focused
     ? '#3b82f6' // blue-500
     : checked
-    ? '#1e293b' // slate-800
-    : '#facc15', // yellow-400
+      ? '#1e293b' // slate-800
+      : '#facc15', // yellow-400
   transition: 'background-color 0.3s ease'
 })
 
-// User dropdown menu
-const userMenuOptions =[
-        {
-          label: "Profile",
-          key: "profile",
-          icon: renderIcon(UserIcon)
-        },
-        {
-          label: "Edit Profile",
-          key: "editProfile",
-          icon: renderIcon(EditIcon)
-        },
-        {
-          label: "Logout",
-          key: "logout",
-          icon: renderIcon(LogoutIcon)
-        }
-      ]
+const userMenuOptions = [
+  {
+    label: "Profile",
+    key: "profile",
+    icon: renderIcon(UserIcon)
+  },
+  {
+    label: "Edit Profile",
+    key: "editProfile",
+    icon: renderIcon(EditIcon)
+  },
+  {
+    label: "Logout",
+    key: "logout",
+    icon: renderIcon(LogoutIcon)
+  }
+]
 
 function renderIcon(icon) {
   return () => {
@@ -133,8 +131,6 @@ function renderIcon(icon) {
 </script>
 
 <style scoped>
-
-
 .brand-link {
   text-decoration: none;
   transition: opacity 0.2s;
@@ -143,6 +139,4 @@ function renderIcon(icon) {
 .brand-link:hover {
   opacity: 0.8;
 }
-
-
 </style>

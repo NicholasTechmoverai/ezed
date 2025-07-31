@@ -1,53 +1,93 @@
 <template>
     <div class="flex flex-row items-center gap-2">
-        <!-- Tooltip Menu Trigger -->
-        <n-tooltip trigger="click"  placement="bottom-end" :show-arrow="false">
+        <n-tooltip trigger="click" placement="bottom-end" :show-arrow="false">
             <template #trigger>
                 <n-icon size="large" class="cursor-pointer" aria-label="Menu options">
                     <Menu2 />
                 </n-icon>
             </template>
 
-            <!-- Tooltip Content -->
             <template #default>
                 <n-space size="small">
-                    <n-button size="tiny" secondary>
+                    <n-button v-for="(site, index) in allSites" :key="index" size="tiny" secondary
+                        @click="openTab(site.key)">
                         <n-icon>
-                            <Youtube />
+                            <component :is="site.icon" />
                         </n-icon>
-                         Youtube</n-button>
-                    <n-button size="tiny" secondary>
-                         <n-icon>
-                            <Facebook />
-                        </n-icon>
-                        facebook</n-button>
-                    <n-button size="tiny" secondary> <n-icon>
-                            <Instagram />
-                        </n-icon>
-                        Intagram</n-button>
-                    <n-button size="tiny" secondary> <n-icon>
-                            <Tiktok />
-                        </n-icon>
-                        Tiktok</n-button>
-                    <n-button size="tiny" secondary>x</n-button>
+                        {{ site.label }}
+                    </n-button>
+
                 </n-space>
             </template>
         </n-tooltip>
-        <n-input size="medium" class="!max-w-[400px] shrink-0" round placeholder="Large" />
+        <div class="flex flex-row  p-2 space-x-2">
+            <n-button text @click="toggleSearch">
+                <n-icon size="large">
+                    <SearchOutline />
+                </n-icon>
+            </n-button>
 
+            <transition name="fade">
+                <n-input v-if="showSearch" v-model:value="searchQuery" placeholder="Search..." size="small" clearable
+                    round @blur="handleBlur" style="width: 200px" />
+            </transition>
+        </div>
+        <OngoingTasks />
     </div>
 </template>
 
 <script setup>
 import { NTooltip, NSpace, NButton, NIcon } from 'naive-ui'
 import { Menu2 } from '@vicons/tabler'
-import { Facebook, Youtube, Instagram, Tiktok } from '@vicons/fa'
+import { SearchOutline } from '@vicons/ionicons5'
+import { ref } from 'vue'
+import OngoingTasks from './OngoingTasks.vue'
+import router from '../router'
+import { allSites } from '../composables'
+import { useRoute } from 'vue-router'
+import { useStateStore } from '../store/stateStore'
+const showSearch = ref(false)
+const route = useRoute()
+const stateStore = useStateStore()
+const searchQuery = ref('')
+
+const toggleSearch = () => {
+    showSearch.value = !showSearch.value
+}
+
+const handleBlur = () => {
+    showSearch.value = false
+}
+const openTab = (tab) => {
+
+    const currentTab = route.path.split('/')[2] || route.params?.child
+    stateStore.setLoadingBar(1)
+
+
+    if (currentTab === tab) {
+        router.go(0)
+    } else {
+        router.push(`/h/${tab}`)
+    }
+    router.push(`/h/${tab}`)
+    setInterval(() => {
+        stateStore.setLoadingBar(0)
+
+    }, 1000);
+
+}
 
 </script>
 
 <style scoped>
-.tooltip-menu {
-    display: inline-block;
-    padding: 4px;
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
+    transform: scaleX(0.8);
 }
 </style>

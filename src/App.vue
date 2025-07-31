@@ -4,7 +4,7 @@
       <n-message-provider>
         <n-notification-provider>
           <n-dialog-provider>
-            <MainPage />
+            <RouterView/>
           </n-dialog-provider>
         </n-notification-provider>
       </n-message-provider>
@@ -13,7 +13,7 @@
 </template>
 
 <script setup>
-import MainPage from './pages/LayoutPage.vue'
+// import MainPage from './pages/LayoutPage.vue'
 import { useThemeStore } from '@/store/themeStore'
 import { computed } from 'vue'
 import { darkTheme } from 'naive-ui'

@@ -1,5 +1,5 @@
 <template>
     <div>
-        Main
+        youv'e landed!
     </div>
 </template>
