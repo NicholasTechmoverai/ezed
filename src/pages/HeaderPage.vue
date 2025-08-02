@@ -75,7 +75,7 @@ const activePage = computed(() => {
 })
 
 watch(() => route.path, (newPath) => {
-  console.log('New value after /h/ is:', activePage.value)
+  // console.log('New value after /h/ is:', activePage.value)
 })
 const themeStore = useThemeStore()
 const userStore = useUserStore()

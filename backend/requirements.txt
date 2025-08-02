@@ -1,0 +1,21 @@
+fastapi
+uvicorn[standard]         # ASGI server to run FastAPI
+python-socketio[asyncio_client]  # Socket.IO client (if needed)
+python-socketio[asgi]     # Socket.IO server support for FastAPI
+tortoise-orm
+aiomysql                  # Tortoise ORM MySQL driver
+pydantic                  # Data validation
+python-dotenv             # For environment variables (optional)
+fastapi-socketio          # Optional wrapper to integrate Socket.IO into FastAPI
+fastapi-admin
+pydantic[email]
+passlib[bcrypt]
+PyJWT
+cryptography
+python-jose[cryptography]
+slowapi
+bleach
+tinycss2
+aerich 
+yt_dlp
+pytube

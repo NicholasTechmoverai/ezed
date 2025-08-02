@@ -9,7 +9,8 @@ import TiktokPage from '../composables/TiktokPage.vue'
 import XPage from '../composables/XPage.vue'
 import MainContentPage from '../pages/MainContentPage.vue'
 import ViewsInstagramPage from '../views/InstagramPage.vue'
-
+import YoutubeListPage from '../views/YoutubeListPage.vue'
+import ViewsYoutubePage from '../views/YoutubePage.vue'
 const routes = [
   {
     path: '/',
@@ -46,8 +47,13 @@ const routes = [
           {
             path: ':id',
             name: 'YoutubeDetail',
-            component: YoutubePage,
+            component: ViewsYoutubePage,
           },
+          {
+            path: 'list/:list_id',
+            name: 'YoutubeMix',
+            component: YoutubeListPage,
+          }
         ],
       },
       {

@@ -49,7 +49,7 @@ const downloadComplete = ref(false)
 const isLoading = ref(false)
 const loadingDescription = ref('Processing your request...')
 
-const currentId = computed(() => route.path.split('/')[3] || null)
+const currentId = computed(() => route.params.id || null)
 const isValidUrl = computed(() => {
   return url.value.trim() &&
     (url.value.includes('instagram.com') || url.value.includes('instagr.am'))
