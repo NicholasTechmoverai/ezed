@@ -1,4 +1,5 @@
-export const BASE_URL = "http://127.0.0.1:8001";
+export const BASE_URL = "http://127.0.0.1:8000";
+export const B_URL =`${BASE_URL}/api`;
 
 
 export const AUTH_WITH_GOOGLE = `${BASE_URL}/api/login/google`;

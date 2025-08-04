@@ -40,11 +40,15 @@ import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { generateUUID } from '../reusables'
 import { useStateStore } from '../store/stateStore'
+
+import api from '../api'
+import { useDownloadStore } from '../store/downloadStore'
 const stateStore = useStateStore()
 const router = useRouter()
 const route = useRoute()
-
+const downlaodStore = useDownloadStore()
 const url = ref('')
+const error = ref(null)
 const downloadComplete = ref(false)
 const isLoading = ref(false)
 const loadingDescription = ref('Processing your request...')
@@ -60,17 +64,27 @@ async function handleDownload() {
 
   isLoading.value = true
   downloadComplete.value = false
+  const username = "Nick"
 
   try {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000))
+    error.value = null;
+    try {
+      const id = generateUUID()
 
+      const response = await downlaodStore.downloadYouTubeMedia(`inst/${username}/download`,id,url.value,);
+      console.log('Download started:', response.data);
+    } catch (err) {
+      error.value = 'Failed to start download.';
+      console.error(err);
+    } finally {
+      isLoading.value = false;
+    }
     downloadComplete.value = true
 
     // Navigate after showing success message
     setTimeout(() => {
       const id = generateUUID()
-      stateStore.addTask({ name: "Song", id: id, url:`/h/inst/${id}`})
+      stateStore.addTask({ name: "Song", id: id, url: `/h/inst/${id}` })
       router.push(`/h/inst/${id}`)
 
     }, 1500)
@@ -80,6 +94,8 @@ async function handleDownload() {
     isLoading.value = false
   }
 }
+
+
 </script>
 
 <style scoped>

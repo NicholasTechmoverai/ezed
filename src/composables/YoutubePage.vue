@@ -68,7 +68,8 @@ import { LinkOutline } from '@vicons/ionicons5'
 import router from '../router'
 import { generateUUID } from '../reusables'
 import { useRoute } from 'vue-router'
-
+import { useStateStore } from '../store/stateStore'
+const stateStore = useStateStore()
 const route = useRoute()
 
 const url = ref('')
@@ -104,7 +105,13 @@ const handleDownload = async () => {
 
   initialized.value = true
   show.value = false
-  isMix.value ? router.push(`/h/yt/list/${generateUUID()}`) : router.push(`/h/yt/${generateUUID()}`);
+  setTimeout(() => {
+    const id = generateUUID()
+    stateStore.addTask({ name: "Song", id: id, url:isMix.value?`/h/yt/list/${id}`: `/h/yt/${id}` })
+
+    isMix.value ? router.push(`/h/yt/list/${id}`) : router.push(`/h/yt/${id}`);
+
+  }, 1000);
 }
 
 const resetForm = () => {

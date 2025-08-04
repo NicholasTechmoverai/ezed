@@ -19,3 +19,5 @@ tinycss2
 aerich 
 yt_dlp
 pytube
+instaloader
+TikTokApi
