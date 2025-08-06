@@ -9,13 +9,13 @@
     <!-- Main Layout -->
     <n-layout>
       <!-- Header -->
-      <n-layout-header bordered class="flex flex-col  p-3">
+      <n-layout-header bordered class="flex flex-col  p-3 sticky top-0">
         <HeaderPage />
         <SecondLayerHeader />
       </n-layout-header>
 
       <!-- Main Content -->
-      <n-layout-content style="padding: 24px" class="">
+      <n-layout-content  class="">
         <Transition enter-active-class="transition-transform transition-opacity duration-300 ease-out"
           enter-from-class="translate-x-4 opacity-0" enter-to-class="translate-x-0 opacity-100"
           leave-active-class="transition-transform transition-opacity duration-200 ease-in"

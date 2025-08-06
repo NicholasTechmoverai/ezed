@@ -18,8 +18,8 @@ from utils.logger import setup_logger
 from utils.auth import get_current_user
 from common.index import StreamDownloader
 
-logger = setup_logger("INSTAGRAM ROUTES")
-instagram_router = APIRouter()
+logger = setup_logger("FACEBOOK ROUTES")
+facebook_router = APIRouter()
 
 downloader = StreamDownloader()
 
@@ -34,16 +34,16 @@ class DownloadRequest(BaseModel):
     format: Optional[str] = None
 
 
-@instagram_router.post("/{username}/download")
+@facebook_router.post("/{username}/download")
 @limiter.limit("50/day")
-async def download_instagram(
+async def download_facebook(
     request: Request,
     username: str,
     data: DownloadRequest,
     # user: Users = Depends(get_current_user),
 ):
     """
-    Download Instagram media content.
+    Download facebook media content.
 
     Parameters:
     - url: The media URL to download

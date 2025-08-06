@@ -16,11 +16,13 @@ from fastapi.staticfiles import StaticFiles
 # )
 from config import init_db  # Your DB init logic
 from routes.instagram import instagram_router
-# from routes.recipes import recipe_router, RecipeService
-# from routes.notifications import notification_router
-# from routes.cooking_tips import cooking_tip_router, RecipeService
+from routes.facebook import facebook_router
+from routes.tiktok import tiktok_router
+from routes.youtube import youtube_router
+from routes.x import x_router
 from utils.limiter import limiter
-# from routes.user import user_router
+
+
 import os
 from config import Config, WEB_SERVER, BASE_SERVER
 
@@ -74,10 +76,10 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
 
 
 app.include_router(instagram_router, prefix="/api/inst")
-# app.include_router(recipe_router, prefix="/api")
-# app.include_router(user_router, prefix="/api")
-# app.include_router(cooking_tip_router, prefix="/api")
-# app.include_router(notification_router, prefix="/api")
+app.include_router(facebook_router, prefix="/api/fb")
+app.include_router(tiktok_router, prefix="/api/tk")
+app.include_router(youtube_router, prefix="/api/yt")
+app.include_router(x_router, prefix="/api/x")
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))

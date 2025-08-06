@@ -1,16 +1,26 @@
+// src/router/index.js
 import { createRouter, createWebHistory } from 'vue-router'
+
+// Small/local components you frequently use can remain static if you prefer.
+// For larger pages/components we use lazy imports to improve initial load.
 import LandingPage from '../pages/LandingPage.vue'
 import LayoutPage from '../pages/LayoutPage.vue'
+import DownloadsPage from '../pages/DownloadsPage.vue'
 
-import YoutubePage from '../composables/YoutubePage.vue'
-import FacebookPage from '../composables/FacebookPage.vue'
-import InstagramPage from '../composables/InstagramPage.vue'
-import TiktokPage from '../composables/TiktokPage.vue'
-import XPage from '../composables/XPage.vue'
-import MainContentPage from '../pages/MainContentPage.vue'
-import ViewsInstagramPage from '../views/InstagramPage.vue'
-import YoutubeListPage from '../views/YoutubeListPage.vue'
-import ViewsYoutubePage from '../views/YoutubePage.vue'
+// Lazy-loaded route components (better for performance)
+const MainContentPage = () => import('../pages/MainContentPage.vue')
+const DownloadCardMount = () => import('../views/DownloadCardMount.vue')
+const YoutubeListPage = () => import('../views/YoutubeListPage.vue')
+const FileMetaCard = () => import('../cards/FileMetaCard.vue')
+
+// If these are really composables turned into single-file components, they can be lazy too:
+const YoutubePage = () => import('../composables/YoutubePage.vue')
+const FacebookPage = () => import('../composables/FacebookPage.vue')
+const InstagramPage = () => import('../composables/InstagramPage.vue')
+const TiktokPage = () => import('../composables/TiktokPage.vue')
+const XPage = () => import('../composables/XPage.vue')
+const E_404Page = () => import('../cards/E_404Page.vue')
+
 const routes = [
   {
     path: '/',
@@ -27,6 +37,8 @@ const routes = [
         name: 'MainContent',
         component: MainContentPage,
       },
+
+      // Instagram
       {
         path: 'inst',
         name: 'Instagram',
@@ -34,11 +46,13 @@ const routes = [
         children: [
           {
             path: ':id',
-            name: 'ViewsInstagramPage',
-            component: ViewsInstagramPage,
+            name: 'InstagramDetail',
+            component: DownloadCardMount,
           },
         ],
       },
+
+      // YouTube
       {
         path: 'yt',
         name: 'Youtube',
@@ -47,15 +61,17 @@ const routes = [
           {
             path: ':id',
             name: 'YoutubeDetail',
-            component: ViewsYoutubePage,
+            component: DownloadCardMount,
           },
           {
             path: 'list/:list_id',
-            name: 'YoutubeMix',
+            name: 'YoutubeList',
             component: YoutubeListPage,
-          }
+          },
         ],
       },
+
+      // TikTok
       {
         path: 'tk',
         name: 'Tiktok',
@@ -64,10 +80,12 @@ const routes = [
           {
             path: ':id',
             name: 'TiktokDetail',
-            component: TiktokPage,
+            component: DownloadCardMount,
           },
         ],
       },
+
+      // Facebook
       {
         path: 'fb',
         name: 'Facebook',
@@ -76,10 +94,12 @@ const routes = [
           {
             path: ':id',
             name: 'FacebookDetail',
-            component: FacebookPage,
+            component: DownloadCardMount,
           },
         ],
       },
+
+      // X (Twitter)
       {
         path: 'x',
         name: 'X',
@@ -88,11 +108,30 @@ const routes = [
           {
             path: ':id',
             name: 'XDetail',
-            component: XPage,
+            component: DownloadCardMount,
           },
         ],
       },
+
+      {
+        path: 'meta/:id',
+        name: 'MetaCard',
+        component: FileMetaCard,
+      },
+      
+      {
+        path: 'downloads',
+        name: 'DownloadPage',
+        component: DownloadsPage,
+      },
     ],
+  },
+
+  // Fallback (optional)
+  {
+    path: '/:pathMatch(.*)*',
+    name: '404Page',
+    component: E_404Page,
   },
 ]
 
@@ -102,7 +141,3 @@ const router = createRouter({
 })
 
 export default router
-
-
-
-

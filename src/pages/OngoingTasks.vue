@@ -1,19 +1,13 @@
 <template>
-  <div class="flex flex-row overflow-x-auto p-2 space-x-1 scrollbar scrollbar-thin scrollbar-thumb-gray-500 scrollbar-track-gray-200">
-    <n-tag
-      v-for="task in stateStore.openedTasks"
-      :key="task.id"
-      closable
-      @close="handleClose(task.id)"
-      @click="handleOpen(task.url)"
-      type="success"
-      size="medium"
-    >
-      {{ task.name }}
+  <div
+    class="flex flex-row overflow-x-auto p-2 space-x-1 scrollbar scrollbar-thin scrollbar-thumb-gray-500 scrollbar-track-gray-200">
+    <n-tag v-for="task in stateStore.openedTasks" :key="task.id" closable @close="handleClose(task.id)"
+      @click="handleOpen(task.url)" type="success" size="medium">
+      <n-ellipsis style="max-width: 70px" class="max-w-[50px]"> {{ task.name }}</n-ellipsis>
     </n-tag>
-    
+
   </div>
-  
+
 </template>
 
 <script setup>
@@ -22,7 +16,7 @@ import { useStateStore } from '../store/stateStore';
 import router from '../router';
 
 const stateStore = useStateStore()
-const handleOpen= (url) => {
+const handleOpen = (url) => {
   router.push(url)
 };
 const handleClose = (id) => {
@@ -35,13 +29,16 @@ const handleClose = (id) => {
   width: 2px;
   height: 2px;
 }
+
 ::-webkit-scrollbar-track {
   background: #f1f1f1;
 }
+
 ::-webkit-scrollbar-thumb {
   background: #888;
   border-radius: 8px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: #555;
 }

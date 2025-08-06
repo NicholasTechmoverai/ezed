@@ -1,45 +1,60 @@
-// stores/themeStore.js
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { addTask_db, deleteTask_db, getAllTasks_db } from '../db/activeState'
 
 export const useStateStore = defineStore('stateStore', () => {
   const activeTab = ref('main')
-  const loadingBar = ref(0) //0-finish,1-start,2-error
-  const openedTasks = ref([
-    // { name: "Song of Dawn", id: "id001" },
-    // { name: "Midnight Echo", id: "id002" },
-    // { name: "Golden Horizon", id: "id003" },
-    // { name: "Electric Pulse", id: "id004" },
-    // { name: "Rainy Roads", id: "id005" },
-    // { name: "Silent Whispers", id: "id006" },
-    // { name: "Neon Skies", id: "id007" },
-    // { name: "Shadow Dance", id: "id008" },
-    // { name: "Crystal Shore", id: "id009" },
-    // { name: "Dreamer's Path", id: "id010" },
-    // { name: "Firelight Anthem", id: "id011" },
-    // { name: "Frozen Steps", id: "id012" },
-    // { name: "Solar Bloom", id: "id013" },
-    // { name: "Twilight Frame", id: "id014" },
-    // { name: "Echoes Unfold", id: "id015" }
-  ]);
+  const loadingBar = ref(0) // 0-finish,1-start,2-error
+  const openedTasks = ref([])
 
-function addTask(task) {
-  openedTasks.value.push(task)
-}
+  async function init() {
+    try {
+      const tasksFromDb = await getAllTasks_db()
+      openedTasks.value = (tasksFromDb || []).map(t => ({ ...t }))
+    } catch (err) {
+      console.error('stateStore.init failed:', err)
+    }
+  }
+
+  function addTask(task) {
+    if (!task || !task.id) {
+      console.warn('addTask expects a task object with an id')
+      return
+    }
+
+    const i = openedTasks.value.findIndex(t => t.id === task.id)
+    if (i !== -1) {
+      openedTasks.value[i] = { ...openedTasks.value[i], ...task }
+    } else {
+      openedTasks.value.push(task)
+    }
+
+    addTask_db(task).catch(err => {
+      console.error('addTask_db failed:', err)
+    })
+  }
 
   function removeTask(id) {
-    openedTasks.value = openedTasks.value.filter((task) => task.id !== id);
-
+    openedTasks.value = openedTasks.value.filter(task => task.id !== id)
+    deleteTask_db(id).catch(err => {
+      console.error('deleteTask_db failed:', err)
+    })
   }
+
   function setActiveTab(value) {
     activeTab.value = value
   }
+
+ /**
+   * use 0->finish, 1->start, ->2-error
+   @param -set loading bar with 0-finish ,1-start,2-error
+   */
   function setLoadingBar(value) {
     loadingBar.value = value
   }
 
-
   return {
+    init,
     setActiveTab,
     setLoadingBar,
     addTask,

@@ -25,13 +25,16 @@
 
 
 
-        <n-dropdown :options="userMenuOptions" size="small" placement="bottom-end" trigger="click">
-          <n-button quaternary circle>
+        <n-dropdown :options="userMenuOptions" size="small" placement="bottom-end" trigger="click"
+          @select="handleMenuSelect">
+          <n-button quaternary circle class="user-avatar-btn">
             <template #icon>
-              <n-avatar size="small" :src="userStore.avatar" fallback-src="/default-avatar.png" />
+              <n-avatar size="medium" round :src="userStore.avatar || NoUser" :fallback-src="NoUser"
+                class="user-avatar-img" />
             </template>
           </n-button>
         </n-dropdown>
+
       </n-space>
     </n-space>
   </header>
@@ -42,6 +45,7 @@ import { ref, watch, h, computed } from 'vue'
 import { useThemeStore } from '@/store/themeStore'
 import { useUserStore } from '@/store/userStore'
 import { MoonOutline, SunnyOutline } from '@vicons/ionicons5'
+import NoUser from "../assets/NoUser.png"
 import Logo from './Logo.vue'
 import {
   Pencil as EditIcon,
@@ -62,6 +66,7 @@ import {
 
 import { useRoute } from 'vue-router'
 import { allSites, openTab } from '../composables'
+import router from '../router'
 
 const route = useRoute()
 
@@ -110,9 +115,10 @@ const userMenuOptions = [
     icon: renderIcon(UserIcon)
   },
   {
-    label: "Edit Profile",
-    key: "editProfile",
-    icon: renderIcon(EditIcon)
+    label: "Downloads",
+    key: "downloads",
+    icon: renderIcon(EditIcon),
+
   },
   {
     label: "Logout",
@@ -120,6 +126,15 @@ const userMenuOptions = [
     icon: renderIcon(LogoutIcon)
   }
 ]
+function handleMenuSelect(key) {
+  if (key === "profile") {
+    router.push("/h/profile")
+  } else if (key === "downloads") {
+    router.push("/h/downloads")
+  } else if (key === "logout") {
+    logoutUser()
+  }
+}
 
 function renderIcon(icon) {
   return () => {
@@ -138,5 +153,23 @@ function renderIcon(icon) {
 
 .brand-link:hover {
   opacity: 0.8;
+}
+
+.user-avatar-btn {
+  padding: 0;
+  transition: background-color 0.2s ease;
+}
+
+.user-avatar-img:hover {
+  background-color: rgba(11, 194, 78, 0.655);
+  /* subtle hover */
+}
+
+.user-avatar-img {
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  object-fit: cover;
+  min-width: 35px !important;
+
 }
 </style>

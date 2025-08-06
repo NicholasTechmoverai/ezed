@@ -1,12 +1,14 @@
 import { defineStore } from 'pinia';
 import { useUserStore } from "./userStore.js";
 import { B_URL } from "@/utils/index.js";
-
+import { clearBlob, saveFile } from "../db/download.js"
+import { useStateStore } from './stateStore.js';
 export const useDownloadStore = defineStore('downloadStore', {
   state: () => ({
     userStore: useUserStore(),
+    stateStore:useStateStore(),
     onGoingDownloads: {},
-    currentDownloadCount: 0
+    currentDownloadCount: 0,
   }),
 
   getters: {
@@ -16,6 +18,7 @@ export const useDownloadStore = defineStore('downloadStore', {
   },
 
   actions: {
+
     /**
      * Calculates estimated time remaining for download
      * @param {number} fileSizeInMB - File size in megabytes
@@ -79,11 +82,21 @@ export const useDownloadStore = defineStore('downloadStore', {
 
 
       if (!url) {
-        console.log("Please select a stream to download.", resolution);
-        return;
+        console.log("No url Provided", );
+        return "No url Provided";
+      }
+
+      if (!this.onGoingDownloads[id]) {
+        this.onGoingDownloads[id] = {
+          status: "starting",
+          progress: 0,
+          timestamp:Date.now()
+        }
       }
 
       let download_id;
+      this.stateStore.addTask({ name: `${id}`, id: id, url: `/h/inst/${id}` })
+
 
       try {
         const response = await fetch(`${B_URL}/${endpoint}`, {
@@ -100,7 +113,8 @@ export const useDownloadStore = defineStore('downloadStore', {
         });
 
         if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-        this.downloadsCount('+');
+        this.onGoingDownloads[id].status = "downloading";
+
 
         let isFirstChunk = true;
         const startTime = performance.now();
@@ -109,10 +123,10 @@ export const useDownloadStore = defineStore('downloadStore', {
 
         const filename = contentDisposition
           ? contentDisposition.split("filename=")[1]?.replace(/"/g, "")
-          : filename || "downloaded_file";
+          : id;
 
-        const extension = header_info.get("format") || extension;
-        download_id = header_info.get("X-Download-URL") || songId;
+        const extension = header_info.get("format") || 'mp4';
+        download_id = header_info.get("X-Download-URL") || id;
         const timestamp = Date.now();
 
         if (!this.onGoingDownloads) {
@@ -139,6 +153,8 @@ export const useDownloadStore = defineStore('downloadStore', {
                   this.onGoingDownloads[download_id].downloadSpeedMbps = "0 Mb/s";
                   this.onGoingDownloads[download_id].eta = "00:00";
                   controller.close();
+                  await saveFile(id, url, filename, null, downloadedSize === contentLength ? "completed":"interupted", null, contentLength, downloadedSize)
+
                   return;
                 }
                 if (isFirstChunk) {
@@ -199,24 +215,26 @@ export const useDownloadStore = defineStore('downloadStore', {
                     this.onGoingDownloads[download_id] = {};
                   }
 
-                  this.onGoingDownloads[download_id] = {
-                    timestamp,
+                  Object.assign(this.onGoingDownloads[download_id], {
+                    // time,
                     filename,
                     progress,
                     status: "downloading",
                     eta,
                     downloadSpeedMbps: formattedSpeed,
-                    thumbnail: thumbnail,
+                    thumbnail: "",
                     filesize: contentLength,
-                    downloadedSize: downloadedSize,
-                  };
+                    downloadedSize,
+                  })
+
+                  await saveFile(id, url, filename, null, "downloading", "", contentLength, downloadedSize)
 
                   // Log progress (optional)
-                  console.clear();
-                  console.log(`Downloading: ${filename}`);
-                  console.log(`Progress: ${progress.toFixed(2)}%`);
-                  console.log(`Speed: ${formattedSpeed}`);
-                  console.log(`ETA: ${eta}`);
+                  // console.clear();
+                  // console.log(`Downloading: ${filename}`);
+                  // console.log(`Progress: ${progress.toFixed(2)}%`);
+                  // console.log(`Speed: ${formattedSpeed}`);
+                  // console.log(`ETA: ${eta}`);
 
                   lastUpdateTime = currentTime;
                   lastDownloadedSize = downloadedSize;
@@ -233,7 +251,7 @@ export const useDownloadStore = defineStore('downloadStore', {
         });
 
         const main_blob = await new Response(stream).blob();
-        this.saveToFile(main_blob, filename)
+        this.saveToFile(main_blob, filename, extension)
 
       } catch (error) {
         console.error("Download failed:", error);
@@ -276,7 +294,7 @@ export const useDownloadStore = defineStore('downloadStore', {
     /**
      * Saves blob to file system
      */
-    saveToFile(blob, filename, extension) {
+    saveToFile(blob, filename, extension = 'mp4') {
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
       link.download = `${filename}.${extension}`;
@@ -285,6 +303,7 @@ export const useDownloadStore = defineStore('downloadStore', {
       document.body.removeChild(link);
       URL.revokeObjectURL(link.href);
       this.decrementDownloadCount();
+      // clearBlob(download/_id) 
     },
 
     incrementDownloadCount() {

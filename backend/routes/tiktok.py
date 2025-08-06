@@ -18,8 +18,8 @@ from utils.logger import setup_logger
 from utils.auth import get_current_user
 from common.index import StreamDownloader
 
-logger = setup_logger("INSTAGRAM ROUTES")
-instagram_router = APIRouter()
+logger = setup_logger("TIKTOK ROUTES")
+tiktok_router = APIRouter()
 
 downloader = StreamDownloader()
 
@@ -34,7 +34,7 @@ class DownloadRequest(BaseModel):
     format: Optional[str] = None
 
 
-@instagram_router.post("/{username}/download")
+@tiktok_router.post("/{username}/download")
 @limiter.limit("50/day")
 async def download_instagram(
     request: Request,
