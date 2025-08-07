@@ -2,11 +2,10 @@
 // @ffmpeg/ffmpeg@0.12.15
 // @ffmpeg/util@0.12.2
 
-
 import { ref, onMounted, onUnmounted } from 'vue';
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { fetchFile } from '@ffmpeg/util';
-
+import { useDownloadStore } from '../store/downloadStore';
 
 export function useFfmpeg() {
   const ffmpeg = new FFmpeg();
@@ -16,15 +15,21 @@ export function useFfmpeg() {
   const outputUrl = ref(null);
   const error = ref(null);
 
-  // Cleanup event listeners
+  const downloadStore = useDownloadStore();
+
   const cleanupListeners = () => {
     ffmpeg.off('log');
     ffmpeg.off('progress');
   };
 
-  /**
-   * Load FFmpeg core files
-   */
+  const updateMergeProgress = (id, p) => {
+    if (!id) return;
+    const entry = downloadStore.onGoingDownloads[id];
+    if (entry) {
+      entry.merge_progress = p;
+    }
+  };
+
   const load = async () => {
     if (ready.value || loading.value) return;
 
@@ -33,7 +38,7 @@ export function useFfmpeg() {
     cleanupListeners();
 
     try {
-      console.log('Initializing FFmpeg... ');
+      console.log('Initializing FFmpeg...');
 
       ffmpeg.on('log', ({ message }) => {
         console.debug('[FFmpeg]', message);
@@ -43,75 +48,74 @@ export function useFfmpeg() {
         const newProgress = Math.round(p * 100);
         if (newProgress !== progress.value) {
           progress.value = newProgress;
-          console.debug(`[FFmpeg] Progress: ${progress.value}%`);
+          console.debug(`[FFmpeg] Progress: ${newProgress}%`);
         }
       });
 
-      await ffmpeg.load(); 
-
+      await ffmpeg.load();
       ready.value = true;
       console.log('FFmpeg initialized successfully');
     } catch (err) {
       error.value = err.message || 'Failed to initialize FFmpeg';
       console.error('FFmpeg initialization error:', err);
-      throw err; // Re-throw to allow component to handle
+      throw err;
     } finally {
       loading.value = false;
     }
   };
 
-  /**
-   * Merge video and audio files
-   */
-  const mergeVideoAudio = async (videoFile, audioFile) => {
+  const mergeVideoAudio = async (videoFile, audioFile, id = null) => {
     if (!ready.value) await load();
     if (error.value) throw new Error(error.value);
 
     const TEMP_FILES = {
       video: 'input_video.mp4',
       audio: 'input_audio.mp3',
-      output: 'output.mp4'
+      output: 'output.mp4',
     };
 
     try {
       console.log('Starting video/audio merge...');
 
-      // Parallel file reading
+      ffmpeg.on('progress', ({ progress: p }) => {
+        const mergeProgress = Math.round(p * 100);
+        if (mergeProgress !== progress.value) {
+          progress.value = mergeProgress;
+          updateMergeProgress(id, mergeProgress);
+          console.debug(`[FFmpeg][${id}] Merge Progress: ${mergeProgress}%`);
+        }
+      });
+
       const [videoData, audioData] = await Promise.all([
         fetchFile(videoFile),
-        fetchFile(audioFile)
+        fetchFile(audioFile),
       ]);
 
-      // Parallel file writing
       await Promise.all([
         ffmpeg.writeFile(TEMP_FILES.video, videoData),
-        ffmpeg.writeFile(TEMP_FILES.audio, audioData)
+        ffmpeg.writeFile(TEMP_FILES.audio, audioData),
       ]);
 
-      // Execute FFmpeg command with optimized settings
       await ffmpeg.exec([
         '-i', TEMP_FILES.video,
         '-i', TEMP_FILES.audio,
-        '-c:v', 'copy',          // No video re-encoding
-        '-c:a', 'aac',           // AAC audio
-        '-b:a', '192k',          // Audio bitrate
-        '-movflags', '+faststart', // Web optimization
-        '-shortest',             // Match shortest stream
-        '-y',                    // Overwrite
-        TEMP_FILES.output
+        '-c:v', 'copy',
+        '-c:a', 'aac',
+        '-b:a', '192k',
+        '-movflags', '+faststart',
+        '-shortest',
+        '-y',
+        TEMP_FILES.output,
       ]);
 
-      // Read output
       const outputData = await ffmpeg.readFile(TEMP_FILES.output);
 
-      // Cleanup temporary files
       await Promise.all([
         ffmpeg.deleteFile(TEMP_FILES.video),
         ffmpeg.deleteFile(TEMP_FILES.audio),
-        ffmpeg.deleteFile(TEMP_FILES.output)
+        ffmpeg.deleteFile(TEMP_FILES.output),
       ]);
 
-      // Create object URL
       outputUrl.value = URL.createObjectURL(
         new Blob([outputData.buffer], { type: 'video/mp4' })
       );
@@ -122,12 +126,11 @@ export function useFfmpeg() {
       error.value = err.message || 'Merge failed';
       console.error('Merge error:', err);
 
-      // Attempt cleanup on error
       try {
         await Promise.allSettled([
           ffmpeg.deleteFile(TEMP_FILES.video),
           ffmpeg.deleteFile(TEMP_FILES.audio),
-          ffmpeg.deleteFile(TEMP_FILES.output)
+          ffmpeg.deleteFile(TEMP_FILES.output),
         ]);
       } catch (cleanupErr) {
         console.warn('Cleanup error:', cleanupErr);
@@ -137,9 +140,6 @@ export function useFfmpeg() {
     }
   };
 
-  /**
-   * Clean up resources
-   */
   const dispose = () => {
     if (outputUrl.value) {
       URL.revokeObjectURL(outputUrl.value);
@@ -148,12 +148,9 @@ export function useFfmpeg() {
     cleanupListeners();
   };
 
-  // Auto-cleanup
   onUnmounted(dispose);
 
-  // Lazy initialization
   onMounted(() => {
-    // Only auto-load if not in SSR
     if (typeof window !== 'undefined') {
       setTimeout(load, 500);
     }
@@ -167,6 +164,6 @@ export function useFfmpeg() {
     error,
     load,
     mergeVideoAudio,
-    dispose
+    dispose,
   };
 }

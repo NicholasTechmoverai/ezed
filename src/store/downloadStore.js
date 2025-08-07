@@ -360,13 +360,12 @@ export const useDownloadStore = defineStore('downloadStore', {
 
       try {
         this.onGoingDownloads[id].status = "merging";
-        this.onGoingDownloads[id].merge_progress =  this.useFfmpeg.progress;
-
 
         // Use FFmpeg to merge video and audio
         const mergedBlob = await this.useFfmpeg.mergeVideoAudio(
           pending.video.blob,
           pending.audio.blob,
+          id
         );
 
         // Finalize the merged download
