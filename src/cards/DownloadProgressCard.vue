@@ -213,7 +213,9 @@
         </template>
       </n-result>
     </n-card>
+    {{localFileData}}
   </div>
+  
 </template>
 
 <script setup>
