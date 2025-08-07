@@ -354,75 +354,29 @@ export const useDownloadStore = defineStore('downloadStore', {
      * Checks if both video and audio parts are downloaded and merges them
      * @param {string} id - Video ID
      */
-    // async checkAndMergeDownloads(id) {
-    //   const pending = this.pendingMerges[id];
-    //   if (!pending || !pending.video?.blob || !pending.audio?.blob) return;
-
-    //   try {
-    //     this.onGoingDownloads[id].status = "merging";
-
-    //     // Use FFmpeg to merge video and audio
-    //     const mergedBlob = await this.useFfmpeg.mergeVideoAudio(
-    //       pending.video.blob,
-    //       pending.audio.blob,
-    //     );
-
-    //     // Finalize the merged download
-    //     await this.finalizeDownload(id, mergedBlob, pending.filename, pending.extension);
-
-    //     // Clean up
-    //     delete this.pendingMerges[id];
-    //   } catch (error) {
-    //     console.error("Failed to merge downloads:", error);
-    //     this.onGoingDownloads[id].status = "merge_failed";
-    //   }
-    // },
-
     async checkAndMergeDownloads(id) {
       const pending = this.pendingMerges[id];
       if (!pending || !pending.video?.blob || !pending.audio?.blob) return;
 
       try {
-        // Initialize merge progress
-        this.mergeProgress[id] = 0;
         this.onGoingDownloads[id].status = "merging";
-        this.onGoingDownloads[id].merge_progress = 0;
+        this.onGoingDownloads[id].merge_progress =  this.useFfmpeg.progress;
 
-        // Setup FFmpeg progress listener
-        const progressListener = ({ progress }) => {
-          const percent = Math.round(progress * 100);
-          this.mergeProgress[id] = percent;
-          this.onGoingDownloads[id].merge_progress = percent;
 
-          // Update the main progress display
-          this.update_download_progress({
-            id,
-            status: 'merging',
-            merge_progress: percent
-          });
-        };
-
-        this.useFfmpeg.ffmpeg.on('progress', progressListener);
-
-        // Perform the merge
+        // Use FFmpeg to merge video and audio
         const mergedBlob = await this.useFfmpeg.mergeVideoAudio(
           pending.video.blob,
-          pending.audio.blob
+          pending.audio.blob,
         );
 
-        // Cleanup
-        this.useFfmpeg.ffmpeg.off('progress', progressListener);
-        delete this.mergeProgress[id];
-
-        // Finalize download
+        // Finalize the merged download
         await this.finalizeDownload(id, mergedBlob, pending.filename, pending.extension);
-        delete this.pendingMerges[id];
 
+        // Clean up
+        delete this.pendingMerges[id];
       } catch (error) {
         console.error("Failed to merge downloads:", error);
         this.onGoingDownloads[id].status = "merge_failed";
-        this.onGoingDownloads[id].merge_progress = 0;
-        delete this.mergeProgress[id];
       }
     },
 
