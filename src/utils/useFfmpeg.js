@@ -1,14 +1,12 @@
+// @ffmpeg/core@0.12.10
+// @ffmpeg/ffmpeg@0.12.15
+// @ffmpeg/util@0.12.2
+
+
 import { ref, onMounted, onUnmounted } from 'vue';
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { fetchFile } from '@ffmpeg/util';
 
-import { BASE_URL } from "./index.js";
-
-// Constants for better maintainability
-const CORE_FILES = {
-  core: 'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js',
-  wasm: 'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.wasm'
-};
 
 export function useFfmpeg() {
   const ffmpeg = new FFmpeg();
@@ -35,7 +33,7 @@ export function useFfmpeg() {
     cleanupListeners();
 
     try {
-      console.log('Initializing FFmpeg... from ', CORE_FILES.core);
+      console.log('Initializing FFmpeg... ');
 
       ffmpeg.on('log', ({ message }) => {
         console.debug('[FFmpeg]', message);
@@ -49,10 +47,7 @@ export function useFfmpeg() {
         }
       });
 
-      await ffmpeg.load({
-        wasmURL: CORE_FILES.wasm,
-        coreURL: CORE_FILES.core,
-      });
+      await ffmpeg.load(); 
 
       ready.value = true;
       console.log('FFmpeg initialized successfully');
