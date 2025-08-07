@@ -13,7 +13,8 @@ export const useDownloadStore = defineStore('downloadStore', {
     onGoingDownloads: {}, // Tracks all active downloads
     pendingMerges: {},    // Tracks downloads waiting to be merged
     currentDownloadCount: 0,
-    mergeProgress: useFfmpeg.progress
+    mergeProgress: {},
+    // mergeProgress: useFfmpeg.progress
   }),
 
   getters: {
@@ -75,41 +76,56 @@ export const useDownloadStore = defineStore('downloadStore', {
         return;
       }
 
-      console.log("ROGRESS::", prg)
-      // Initialize download entry if it doesn't exist
+      const isAudio = !!prg.is_audio;
+
+      // Initialize entry if not present
       if (!this.onGoingDownloads[prg.id]) {
         this.onGoingDownloads[prg.id] = { id: prg.id };
       }
 
       const target = this.onGoingDownloads[prg.id];
-      const updatableFields = [
+
+      // Fields to update
+      const baseFields = [
         'filename', 'progress', 'status', 'eta',
         'downloadSpeedMbps', 'thumbnail', 'filesize',
-        'downloadedSize', 'is_audio', 'url'
+        'downloadedSize', 'url'
       ];
 
-      // Update only provided fields
-      updatableFields.forEach(key => {
-        if (prg[key] !== undefined) target[key] = prg[key];
+      // Prefix for audio fields
+      const prefix = isAudio ? 'a_' : '';
+
+      // Update fields with optional prefix
+      baseFields.forEach(key => {
+        if (prg[key] !== undefined) {
+          target[`${prefix}${key}`] = prg[key];
+        }
       });
 
-      // Determine if download is complete
-      const isComplete = typeof prg.downloadedSize === 'number' &&
-        typeof prg.contentLength === 'number' &&
-        prg.downloadedSize === prg.contentLength;
+      // Store is_audio flag separately to differentiate streams
+      target[`${prefix}is_audio`] = isAudio;
 
-      const persistentStatus = isComplete ? 'completed' : (prg.status ?? target.status ?? 'interrupted');
+      // Determine if complete
+      const downloadedSize = prg.downloadedSize;
+      const contentLength = prg.contentLength;
+      const isComplete = typeof downloadedSize === 'number' &&
+        typeof contentLength === 'number' &&
+        downloadedSize === contentLength;
+
+      const persistentStatus = isComplete
+        ? 'completed'
+        : (prg.status ?? target[`${prefix}status`] ?? 'interrupted');
 
       try {
         await saveFile(
           prg.id,
-          prg.url ?? target.url,
-          prg.filename ?? target.filename,
-          null, // blob (not stored here)
+          prg.url ?? target[`${prefix}url`],
+          prg.filename ?? target[`${prefix}filename`],
+          null, // blob
           persistentStatus,
-          prg.thumbnail ?? target.thumbnail,
-          prg.contentLength ?? target.filesize,
-          prg.downloadedSize ?? target.downloadedSize
+          prg.thumbnail ?? target[`${prefix}thumbnail`],
+          prg.contentLength ?? target[`${prefix}filesize`],
+          prg.downloadedSize ?? target[`${prefix}downloadedSize`]
         );
       } catch (err) {
         console.error('Failed to persist download state:', err);
@@ -338,27 +354,75 @@ export const useDownloadStore = defineStore('downloadStore', {
      * Checks if both video and audio parts are downloaded and merges them
      * @param {string} id - Video ID
      */
+    // async checkAndMergeDownloads(id) {
+    //   const pending = this.pendingMerges[id];
+    //   if (!pending || !pending.video?.blob || !pending.audio?.blob) return;
+
+    //   try {
+    //     this.onGoingDownloads[id].status = "merging";
+
+    //     // Use FFmpeg to merge video and audio
+    //     const mergedBlob = await this.useFfmpeg.mergeVideoAudio(
+    //       pending.video.blob,
+    //       pending.audio.blob,
+    //     );
+
+    //     // Finalize the merged download
+    //     await this.finalizeDownload(id, mergedBlob, pending.filename, pending.extension);
+
+    //     // Clean up
+    //     delete this.pendingMerges[id];
+    //   } catch (error) {
+    //     console.error("Failed to merge downloads:", error);
+    //     this.onGoingDownloads[id].status = "merge_failed";
+    //   }
+    // },
+
     async checkAndMergeDownloads(id) {
       const pending = this.pendingMerges[id];
       if (!pending || !pending.video?.blob || !pending.audio?.blob) return;
 
       try {
+        // Initialize merge progress
+        this.mergeProgress[id] = 0;
         this.onGoingDownloads[id].status = "merging";
+        this.onGoingDownloads[id].merge_progress = 0;
 
-        // Use FFmpeg to merge video and audio
+        // Setup FFmpeg progress listener
+        const progressListener = ({ progress }) => {
+          const percent = Math.round(progress * 100);
+          this.mergeProgress[id] = percent;
+          this.onGoingDownloads[id].merge_progress = percent;
+
+          // Update the main progress display
+          this.update_download_progress({
+            id,
+            status: 'merging',
+            merge_progress: percent
+          });
+        };
+
+        this.useFfmpeg.ffmpeg.on('progress', progressListener);
+
+        // Perform the merge
         const mergedBlob = await this.useFfmpeg.mergeVideoAudio(
           pending.video.blob,
-          pending.audio.blob,
+          pending.audio.blob
         );
 
-        // Finalize the merged download
-        await this.finalizeDownload(id, mergedBlob, pending.filename, pending.extension);
+        // Cleanup
+        this.useFfmpeg.ffmpeg.off('progress', progressListener);
+        delete this.mergeProgress[id];
 
-        // Clean up
+        // Finalize download
+        await this.finalizeDownload(id, mergedBlob, pending.filename, pending.extension);
         delete this.pendingMerges[id];
+
       } catch (error) {
         console.error("Failed to merge downloads:", error);
         this.onGoingDownloads[id].status = "merge_failed";
+        this.onGoingDownloads[id].merge_progress = 0;
+        delete this.mergeProgress[id];
       }
     },
 

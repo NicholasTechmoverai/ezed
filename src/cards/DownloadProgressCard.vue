@@ -31,7 +31,8 @@
       :content-style="{ padding: 0 }">
       <div class="flex flex-col p-4 space-y-4">
         <!-- Thumbnail with progress overlay -->
-        <div class="relative w-full max-h-[350px] rounded-lg overflow-hidden group cursor-pointer" @click="toggleLoader">
+        <div class="relative w-full max-h-[350px] rounded-lg overflow-hidden group cursor-pointer"
+          @click="toggleLoader">
           <n-image :src="fileThumbnail" :fallback-src="defaultThumbnail"
             class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" preview-disabled>
             <template #error>
@@ -43,14 +44,20 @@
 
           <!-- Progress overlay -->
           <transition name="fade">
-            <div v-if="isLoaderActive"
-              class="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-              <n-progress type="circle" :percentage="downloadPercentage" :color="progressColor"
-                :rail-color="changeColor(progressColor, { alpha: 0.2 })" :stroke-width="6" :gap-degree="90"
-                :show-indicator="false" class="scale-90" />
-              <span class="absolute text-white font-medium text-sm">
-                {{ downloadPercentage }}%
-              </span>
+            <div class="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+              <div>
+                <n-progress type="circle" :percentage="merge_progress">
+                  <span style="text-align: center">{{merge_progress}} merging</span>
+                </n-progress>
+              </div>
+              <div v-if="isLoaderActive && !merge_progress">
+                <n-progress type="circle" :percentage="downloadPercentage" :color="progressColor"
+                  :rail-color="changeColor(progressColor, { alpha: 0.2 })" :stroke-width="6" :gap-degree="90"
+                  :show-indicator="false" class="scale-90" />
+                <span class="absolute text-white font-medium text-sm">
+                  {{ downloadPercentage }}%
+                </span>
+              </div>
             </div>
           </transition>
 
@@ -107,6 +114,12 @@
           </div>
         </transition-expand>
 
+        <div>
+          <n-progress type="line" :percentage="a_downloadPercentage" indicator-placement="inside" processing>
+            <span style="text-align: center">audio {{ a_downloadPercentage }}%</span>
+          </n-progress>
+        </div>
+
         <!-- Action buttons -->
         <div class="pt-2 flex flex-col space-y-2">
           <template v-if="!showDownloadProgress">
@@ -149,11 +162,8 @@
               </n-tooltip>
 
               <!-- Cancel Button -->
-              <n-popconfirm
-                :positive-text="downloadStatus === 'completed' ? 'Delete' : 'Cancel'"
-                :negative-text="'Cancel'"
-                @positive-click="cancelDownload"
-              >
+              <n-popconfirm :positive-text="downloadStatus === 'completed' ? 'Delete' : 'Cancel'"
+                :negative-text="'Cancel'" @positive-click="cancelDownload">
                 <template #trigger>
                   <n-tooltip trigger="hover">
                     <template #trigger>
@@ -168,8 +178,8 @@
                     {{ downloadStatus === 'completed' ? 'Delete' : 'Cancel' }}
                   </n-tooltip>
                 </template>
-                {{ downloadStatus === 'completed' 
-                  ? 'Are you sure you want to delete this download?' 
+                {{ downloadStatus === 'completed'
+                  ? 'Are you sure you want to delete this download?'
                   : 'Are you sure you want to cancel this download?' }}
               </n-popconfirm>
 
@@ -195,11 +205,7 @@
 
     <!-- Not Found State -->
     <n-card v-else class="m-5 max-w-xs">
-      <n-result
-        status="404"
-        title="Download Not Found"
-        description="The requested download could not be found"
-      >
+      <n-result status="404" title="Download Not Found" description="The requested download could not be found">
         <template #footer>
           <n-button type="primary" @click="router.back()">
             Go Back
@@ -258,6 +264,11 @@ const statusConfig = {
   },
   downloading: {
     message: 'Downloading',
+    icon: PlayOutline,
+    type: 'info'
+  },
+  merging: {
+    message: 'Merging',
     icon: PlayOutline,
     type: 'info'
   },
@@ -328,9 +339,9 @@ const fileName = computed(() => {
   return name.split('.').slice(0, -1).join('.') || name // Remove extension if present
 })
 const fileExtension = computed(() => {
-  const ext = localFileData.value?.filename?.split('.').pop() || 
-              localFileData.value?.extension || 
-              'file'
+  const ext = localFileData.value?.filename?.split('.').pop() ||
+    localFileData.value?.extension ||
+    'file'
   return ext.toUpperCase()
 })
 const formattedFileSize = computed(() => formatFileSize(localFileData.value?.filesize))
@@ -358,6 +369,12 @@ const statusMessages = computed(() => Object.fromEntries(
   Object.entries(statusConfig).map(([key, value]) => [key, value.message])
 ))
 
+const a_downloadPercentage = computed(() => {
+  if (!localFileData.value?.a_filesize) return 0
+  return Math.min(100, Math.round((localFileData.value?.a_downloadedSize / localFileData.value?.a_filesize) * 100) || 0)
+})
+const merge_progress =  computed(() => statusConfig[downloadStatus.value]?.merge_progress || null)
+
 const progressColor = computed(() => {
   switch (downloadStatus.value) {
     case 'active': return themeVars.value.primaryColor
@@ -374,37 +391,37 @@ const toggleLoader = () => isLoaderActive.value = !isLoaderActive.value
 
 const startDownload = async () => {
   try {
-   message.loading('Starting download!')
+    message.loading('Starting download!')
     await downloadStore.download_file('inst/Nick/download', props.id, localFileData.value?.url)
     message.success("done")
   } catch (error) {
-   message.error('Failed to start download')
+    message.error('Failed to start download')
     console.error('Download error:', error)
   }
 }
 
 const pauseDownload = () => {
   downloadStore.pauseDownload(props.id)
- message.info('Download paused')
+  message.info('Download paused')
 }
 
 const resumeDownload = () => {
   downloadStore.resumeDownload(props.id)
- message.info('Download resumed')
+  message.info('Download resumed')
 }
 
 const cancelDownload = async () => {
   try {
     if (downloadStatus.value === 'completed') {
       await downloadStore.deleteDownload(props.id)
-     message.success('Download deleted')
+      message.success('Download deleted')
       router.back()
     } else {
       await downloadStore.cancelDownload(props.id)
-     message.info('Download cancelled')
+      message.info('Download cancelled')
     }
   } catch (error) {
-   message.error('Failed to cancel download')
+    message.error('Failed to cancel download')
     console.error('Cancel error:', error)
   }
 }
@@ -416,12 +433,12 @@ const shareDownload = () => {
       text: `Check out this download: ${fileName.value}`,
       url: window.location.href
     }).catch(err => {
-     message.warning('Sharing was cancelled')
+      message.warning('Sharing was cancelled')
     })
   } else {
     // Fallback for browsers without Web Share API
     navigator.clipboard.writeText(window.location.href)
-   message.success('Link copied to clipboard')
+    message.success('Link copied to clipboard')
   }
 }
 
@@ -450,6 +467,7 @@ const changeColor = (color, options = { alpha: 1 }) => {
 .fade-leave-active {
   transition: opacity 0.2s ease;
 }
+
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
@@ -459,6 +477,7 @@ const changeColor = (color, options = { alpha: 1 }) => {
 .slide-up-leave-active {
   transition: all 0.3s ease;
 }
+
 .slide-up-enter-from,
 .slide-up-leave-to {
   opacity: 0;
