@@ -13,7 +13,7 @@ export const useDownloadStore = defineStore('downloadStore', {
     onGoingDownloads: {}, // Tracks all active downloads
     pendingMerges: {},    // Tracks downloads waiting to be merged
     currentDownloadCount: 0,
-    mergeProgress:useFfmpeg.progress
+    mergeProgress: useFfmpeg.progress
   }),
 
   getters: {
@@ -75,7 +75,7 @@ export const useDownloadStore = defineStore('downloadStore', {
         return;
       }
 
-      console.log("ROGRESS::",prg)
+      console.log("ROGRESS::", prg)
       // Initialize download entry if it doesn't exist
       if (!this.onGoingDownloads[prg.id]) {
         this.onGoingDownloads[prg.id] = { id: prg.id };
@@ -122,7 +122,7 @@ export const useDownloadStore = defineStore('downloadStore', {
      * @returns {array|null} Array of [videoTag, audioTag] or null if not combined
      */
     async split_combined_itag(itag) {
-      if (!itag?.includes('+')) return [null,null];
+      if (!itag?.includes('+')) return [null, null];
       return itag.split("+");
     },
 
@@ -206,7 +206,7 @@ export const useDownloadStore = defineStore('downloadStore', {
         });
 
         if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-        
+
         this.onGoingDownloads[id].status = "downloading";
 
         // Parse response headers
@@ -247,7 +247,7 @@ export const useDownloadStore = defineStore('downloadStore', {
           if (downloadedSize === 0 && value) {
             const str = new TextDecoder().decode(value);
             const match = str.match(/^\[CONTENT-LENGTH:(\d+)\]/);
-            
+
             if (match) {
               contentLength = parseInt(match[1]);
               const stripped = value.slice(match[0].length);
@@ -263,16 +263,16 @@ export const useDownloadStore = defineStore('downloadStore', {
           // Update progress periodically
           const currentTime = performance.now();
           const timeDiff = (currentTime - lastUpdateTime) / 1000;
-          
+
           if (timeDiff > 0.5) { // Throttle updates to twice per second
             const sizeDiff = downloadedSize - lastDownloadedSize;
             const instantSpeed = (sizeDiff / timeDiff) / (1024 * 1024); // MB/s
-            
+
             // Calculate moving average speed
             speedSamples.push(instantSpeed);
             if (speedSamples.length > MAX_SAMPLES) speedSamples.shift();
             const avgSpeed = speedSamples.reduce((sum, s) => sum + s, 0) / speedSamples.length;
-            
+
             // Calculate progress metrics
             const progress = Math.min((downloadedSize / contentLength) * 100, 100);
             const remainingBytes = contentLength - downloadedSize;
@@ -302,14 +302,14 @@ export const useDownloadStore = defineStore('downloadStore', {
 
         // Download complete - assemble blob
         const blob = new Blob(chunks);
-        
+
         // For combined downloads, store blob and check if ready to merge
         if (this.pendingMerges[id]) {
           this.pendingMerges[id][downloadType] = {
             blob,
             status: 'completed'
           };
-          
+
           await this.checkAndMergeDownloads(id);
         } else {
           // Single download - save immediately
@@ -321,7 +321,7 @@ export const useDownloadStore = defineStore('downloadStore', {
         if (downloadId && this.onGoingDownloads[downloadId]) {
           this.onGoingDownloads[downloadId].status = "failed";
         }
-        
+
         // Clean up pending merge if one part fails
         if (this.pendingMerges[id]) {
           delete this.pendingMerges[id];
@@ -339,16 +339,16 @@ export const useDownloadStore = defineStore('downloadStore', {
 
       try {
         this.onGoingDownloads[id].status = "merging";
-        
+
         // Use FFmpeg to merge video and audio
         const mergedBlob = await this.useFfmpeg.mergeVideoAudio(
           pending.video.blob,
           pending.audio.blob,
         );
-        
+
         // Finalize the merged download
         await this.finalizeDownload(id, mergedBlob, pending.filename, pending.extension);
-        
+
         // Clean up
         delete this.pendingMerges[id];
       } catch (error) {
@@ -391,6 +391,8 @@ export const useDownloadStore = defineStore('downloadStore', {
         console.error('Failed to persist completed download:', err);
       }
 
+
+
       // Offer download to user
       this.saveToFileSystem(blob, filename, extension);
     },
@@ -412,15 +414,27 @@ export const useDownloadStore = defineStore('downloadStore', {
      * @param {string} filename - Base filename
      * @param {string} extension - File extension
      */
-    saveToFileSystem(blob, filename, extension = 'mp4') {
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = `${filename}.${extension}`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(link.href);
-      this.decrementDownloadCount();
+    saveToFileSystem(blobOrUrl, filename = 'download', extension = 'mp4') {
+      const fullName = `${filename}${extension.startsWith('.') ? extension : '.' + extension}`;
+
+      if (blobOrUrl instanceof Blob) {
+        const url = URL.createObjectURL(blobOrUrl);
+        triggerDownload(url, fullName);
+        URL.revokeObjectURL(url); // Clean up after download
+      } else if (typeof blobOrUrl === 'string') {
+        triggerDownload(blobOrUrl, fullName);
+      } else {
+        console.error('saveFile: Unsupported input type. Must be a Blob or URL string.');
+      }
+    },
+
+    triggerDownload(url, filename) {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
     },
 
     incrementDownloadCount() {
