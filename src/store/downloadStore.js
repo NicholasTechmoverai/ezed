@@ -419,10 +419,10 @@ export const useDownloadStore = defineStore('downloadStore', {
 
       if (blobOrUrl instanceof Blob) {
         const url = URL.createObjectURL(blobOrUrl);
-        triggerDownload(url, fullName);
+        this.triggerDownload(url, fullName);
         URL.revokeObjectURL(url); // Clean up after download
       } else if (typeof blobOrUrl === 'string') {
-        triggerDownload(blobOrUrl, fullName);
+        this.triggerDownload(blobOrUrl, fullName);
       } else {
         console.error('saveFile: Unsupported input type. Must be a Blob or URL string.');
       }
