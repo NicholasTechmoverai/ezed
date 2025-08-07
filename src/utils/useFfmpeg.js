@@ -6,8 +6,8 @@ import { BASE_URL } from "./index.js";
 
 // Constants for better maintainability
 const CORE_FILES = {
-  core: `${BASE_URL}/static/ffmpeg/ffmpeg-core.js`,
-  wasm: `${BASE_URL}/static/ffmpeg/ffmpeg-core.wasm`
+   core: 'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js',
+  wasm: 'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.wasm'
 };
 
 export function useFfmpeg() {

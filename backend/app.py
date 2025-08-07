@@ -39,7 +39,7 @@ ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://localhost:8080",
     "https://yourfrontend.com",
-    "https://the-food-lovers.netlify.app",
+    "https://e-zed.netlify.app",
     f"{WEB_SERVER}",
 ]
 
