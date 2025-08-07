@@ -45,12 +45,12 @@
           <!-- Progress overlay -->
           <transition name="fade">
             <div class="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-              <div>
+              <div v-if="downloadStatus === 'merging'">
                 <n-progress type="circle" :percentage="merge_progress">
-                  <span style="text-align: center">{{merge_progress}} merging</span>
+                  <span style="text-align: center">{{ merge_progress }} merging</span>
                 </n-progress>
               </div>
-              <div v-if="isLoaderActive && !merge_progress">
+              <div v-if="isLoaderActive && downloadStatus != 'merging'">
                 <n-progress type="circle" :percentage="downloadPercentage" :color="progressColor"
                   :rail-color="changeColor(progressColor, { alpha: 0.2 })" :stroke-width="6" :gap-degree="90"
                   :show-indicator="false" class="scale-90" />
@@ -114,7 +114,7 @@
           </div>
         </transition-expand>
 
-        <div>
+        <div v-if="hasAudio">
           <n-progress type="line" :percentage="a_downloadPercentage" indicator-placement="inside" processing>
             <span style="text-align: center">audio {{ a_downloadPercentage }}%</span>
           </n-progress>
@@ -213,9 +213,9 @@
         </template>
       </n-result>
     </n-card>
-    {{localFileData}}
+    {{ localFileData }}
   </div>
-  
+
 </template>
 
 <script setup>
@@ -375,8 +375,8 @@ const a_downloadPercentage = computed(() => {
   if (!localFileData.value?.a_filesize) return 0
   return Math.min(100, Math.round((localFileData.value?.a_downloadedSize / localFileData.value?.a_filesize) * 100) || 0)
 })
-const merge_progress =  computed(() => statusConfig[downloadStatus.value]?.merge_progress || null)
-
+const merge_progress = computed(() => localFileData.value?.merge_progress || null)
+const hasAudio = computed(() => localFileData.value?.is_audio || false)
 const progressColor = computed(() => {
   switch (downloadStatus.value) {
     case 'active': return themeVars.value.primaryColor
