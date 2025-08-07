@@ -6,7 +6,7 @@ import { BASE_URL } from "./index.js";
 
 // Constants for better maintainability
 const CORE_FILES = {
-   core: 'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js',
+  core: 'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js',
   wasm: 'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.wasm'
 };
 
@@ -29,14 +29,14 @@ export function useFfmpeg() {
    */
   const load = async () => {
     if (ready.value || loading.value) return;
-    
+
     loading.value = true;
     error.value = null;
     cleanupListeners();
 
     try {
-      console.log('Initializing FFmpeg... from ',CORE_FILES.core);
-      
+      console.log('Initializing FFmpeg... from ', CORE_FILES.core);
+
       ffmpeg.on('log', ({ message }) => {
         console.debug('[FFmpeg]', message);
       });
@@ -50,8 +50,8 @@ export function useFfmpeg() {
       });
 
       await ffmpeg.load({
-        coreURL: CORE_FILES.core,
         wasmURL: CORE_FILES.wasm,
+        coreURL: CORE_FILES.core,
       });
 
       ready.value = true;
@@ -80,7 +80,7 @@ export function useFfmpeg() {
 
     try {
       console.log('Starting video/audio merge...');
-      
+
       // Parallel file reading
       const [videoData, audioData] = await Promise.all([
         fetchFile(videoFile),
@@ -108,7 +108,7 @@ export function useFfmpeg() {
 
       // Read output
       const outputData = await ffmpeg.readFile(TEMP_FILES.output);
-      
+
       // Cleanup temporary files
       await Promise.all([
         ffmpeg.deleteFile(TEMP_FILES.video),
@@ -126,7 +126,7 @@ export function useFfmpeg() {
     } catch (err) {
       error.value = err.message || 'Merge failed';
       console.error('Merge error:', err);
-      
+
       // Attempt cleanup on error
       try {
         await Promise.allSettled([
@@ -137,7 +137,7 @@ export function useFfmpeg() {
       } catch (cleanupErr) {
         console.warn('Cleanup error:', cleanupErr);
       }
-      
+
       throw err;
     }
   };
@@ -155,7 +155,7 @@ export function useFfmpeg() {
 
   // Auto-cleanup
   onUnmounted(dispose);
-  
+
   // Lazy initialization
   onMounted(() => {
     // Only auto-load if not in SSR
