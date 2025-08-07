@@ -3,12 +3,17 @@ import { useUserStore } from "./userStore.js";
 import { B_URL } from "@/utils/index.js";
 import { clearBlob, saveFile } from "../db/download.js"
 import { useStateStore } from './stateStore.js';
+import { useFfmpeg } from '../utils/useFfmpeg.js';
+
 export const useDownloadStore = defineStore('downloadStore', {
   state: () => ({
     userStore: useUserStore(),
-    stateStore:useStateStore(),
-    onGoingDownloads: {},
+    stateStore: useStateStore(),
+    useFfmpeg: useFfmpeg(),
+    onGoingDownloads: {}, // Tracks all active downloads
+    pendingMerges: {},    // Tracks downloads waiting to be merged
     currentDownloadCount: 0,
+    mergeProgress:useFfmpeg.progress
   }),
 
   getters: {
@@ -18,7 +23,6 @@ export const useDownloadStore = defineStore('downloadStore', {
   },
 
   actions: {
-
     /**
      * Calculates estimated time remaining for download
      * @param {number} fileSizeInMB - File size in megabytes
@@ -27,11 +31,9 @@ export const useDownloadStore = defineStore('downloadStore', {
      */
     calculateETA(fileSizeInMB, downloadSpeedMbps) {
       if (downloadSpeedMbps <= 0) return "Calculating...";
-
       const etaSeconds = (fileSizeInMB * 8) / downloadSpeedMbps;
       const minutes = Math.floor(etaSeconds / 60);
       const seconds = Math.round(etaSeconds % 60);
-
       return minutes > 0 ? `${minutes} min ${seconds} sec` : `${seconds} sec`;
     },
 
@@ -43,9 +45,7 @@ export const useDownloadStore = defineStore('downloadStore', {
      */
     calculateSpeedPerSec(fetchedSize, elapsedTime) {
       if (fetchedSize <= 0 || elapsedTime <= 0) return 0;
-
-      const speedMbps = (fetchedSize / (1024 * 1024)) * 8 / elapsedTime;
-      return speedMbps;
+      return (fetchedSize / (1024 * 1024)) * 8 / elapsedTime;
     },
 
     /**
@@ -55,11 +55,9 @@ export const useDownloadStore = defineStore('downloadStore', {
      */
     formatETA(seconds) {
       if (seconds <= 0) return "00:00";
-
       const hours = Math.floor(seconds / 3600);
       const minutes = Math.floor((seconds % 3600) / 60);
       const secs = Math.floor(seconds % 60);
-
       return [
         hours.toString().padStart(2, '0'),
         minutes.toString().padStart(2, '0'),
@@ -68,35 +66,130 @@ export const useDownloadStore = defineStore('downloadStore', {
     },
 
     /**
-     * Initiates a YouTube download
+     * Updates download progress and persists to IndexedDB
+     * @param {object} prg - Progress object containing download metadata
+     */
+    async update_download_progress(prg = {}) {
+      if (!prg?.id) {
+        console.warn('Invalid progress update - missing ID', prg);
+        return;
+      }
+
+      console.log("ROGRESS::",prg)
+      // Initialize download entry if it doesn't exist
+      if (!this.onGoingDownloads[prg.id]) {
+        this.onGoingDownloads[prg.id] = { id: prg.id };
+      }
+
+      const target = this.onGoingDownloads[prg.id];
+      const updatableFields = [
+        'filename', 'progress', 'status', 'eta',
+        'downloadSpeedMbps', 'thumbnail', 'filesize',
+        'downloadedSize', 'is_audio', 'url'
+      ];
+
+      // Update only provided fields
+      updatableFields.forEach(key => {
+        if (prg[key] !== undefined) target[key] = prg[key];
+      });
+
+      // Determine if download is complete
+      const isComplete = typeof prg.downloadedSize === 'number' &&
+        typeof prg.contentLength === 'number' &&
+        prg.downloadedSize === prg.contentLength;
+
+      const persistentStatus = isComplete ? 'completed' : (prg.status ?? target.status ?? 'interrupted');
+
+      try {
+        await saveFile(
+          prg.id,
+          prg.url ?? target.url,
+          prg.filename ?? target.filename,
+          null, // blob (not stored here)
+          persistentStatus,
+          prg.thumbnail ?? target.thumbnail,
+          prg.contentLength ?? target.filesize,
+          prg.downloadedSize ?? target.downloadedSize
+        );
+      } catch (err) {
+        console.error('Failed to persist download state:', err);
+      }
+    },
+
+    /**
+     * Splits combined itag into video and audio components if present
+     * @param {string} itag - YouTube format itag (may contain '+')
+     * @returns {array|null} Array of [videoTag, audioTag] or null if not combined
+     */
+    async split_combined_itag(itag) {
+      if (!itag?.includes('+')) return [null,null];
+      return itag.split("+");
+    },
+
+    /**
+     * Initiates a YouTube download, handling both single and combined (video+audio) formats
+     * @param {string} endpoint - API endpoint for download
      * @param {string} id - YouTube video ID
      * @param {string} url - YouTube URL
      * @param {string} itag - YouTube format itag
      * @param {string} ext - File extension
-     * @param {number} startByte - Byte offset for resuming downloads
+     * @param {number} startByte - Byte offset for resuming
      * @param {string|null} format - File format
      */
-    async download_file(
-      endpoint, id, url, itag = null, ext = null, startByte = 0, format = null
-    ) {
-
-
+    async download_file(endpoint, id, url, itag = null, ext = null, startByte = 0, format = null) {
       if (!url) {
-        console.log("No url Provided", );
-        return "No url Provided";
+        console.error("Download failed: No URL provided");
+        return;
       }
 
+      // Initialize download tracking
       if (!this.onGoingDownloads[id]) {
         this.onGoingDownloads[id] = {
           status: "starting",
           progress: 0,
-          timestamp:Date.now()
+          timestamp: Date.now()
+        };
+      }
+
+      this.stateStore.addTask({ name: `${id}`, id: id, url: `/h/inst/${id}` });
+
+      // Handle combined video+audio itag (e.g., "137+140")
+      if (itag) {
+        const [videoTag, audioTag] = await this.split_combined_itag(itag);
+
+        if (videoTag && audioTag) {
+          // Track that we're expecting two parts for this download
+          this.pendingMerges[id] = {
+            video: null,
+            audio: null,
+            filename: null,
+            extension: ext || 'mp4'
+          };
+
+          await this.handle_download(endpoint, id, url, videoTag, ext, startByte, format, false);
+          await this.handle_download(endpoint, id, url, audioTag, ext, startByte, format, true);
+          return;
         }
       }
 
-      let download_id;
-      this.stateStore.addTask({ name: `${id}`, id: id, url: `/h/inst/${id}` })
+      // Single format download
+      await this.handle_download(endpoint, id, url, itag, ext, startByte, format, false);
+    },
 
+    /**
+     * Handles the actual download process for a single format
+     * @param {string} endpoint - API endpoint
+     * @param {string} id - Video ID
+     * @param {string} url - Video URL
+     * @param {string} itag - Format itag
+     * @param {string} ext - File extension
+     * @param {number} startByte - Resume position
+     * @param {string} format - Output format
+     * @param {boolean} isAudio - Whether this is an audio stream
+     */
+    async handle_download(endpoint, id, url, itag, ext, startByte, format, isAudio) {
+      let downloadId;
+      const downloadType = isAudio ? 'audio' : 'video';
 
       try {
         const response = await fetch(`${B_URL}/${endpoint}`, {
@@ -113,188 +206,214 @@ export const useDownloadStore = defineStore('downloadStore', {
         });
 
         if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+        
         this.onGoingDownloads[id].status = "downloading";
 
+        // Parse response headers
+        const headers = response.headers;
+        const contentDisposition = headers.get("Content-Disposition");
+        const filename = contentDisposition?.split("filename=")[1]?.replace(/"/g, "") || id;
+        const extension = headers.get("format") || ext || 'mp4';
+        downloadId = headers.get("X-Download-URL") || id;
 
-        let isFirstChunk = true;
-        const startTime = performance.now();
-        const header_info = response.headers;
-        const contentDisposition = header_info.get("Content-Disposition");
-
-        const filename = contentDisposition
-          ? contentDisposition.split("filename=")[1]?.replace(/"/g, "")
-          : id;
-
-        const extension = header_info.get("format") || 'mp4';
-        download_id = header_info.get("X-Download-URL") || id;
-        const timestamp = Date.now();
-
-        if (!this.onGoingDownloads) {
-          this.onGoingDownloads = {};
+        // Initialize download tracking
+        if (!this.onGoingDownloads[id]) {
+          this.onGoingDownloads[id] = {};
         }
 
+        // For combined downloads, store filename in pending merge
+        if (this.pendingMerges[id]) {
+          this.pendingMerges[id].filename = filename;
+          this.pendingMerges[id][downloadType] = { status: 'downloading' };
+        }
+
+        // Download progress tracking
         let contentLength = this.activeFilesize * 1024 * 1024; // Convert MB to bytes
         let downloadedSize = 0;
+        const startTime = performance.now();
         let lastUpdateTime = startTime;
         let lastDownloadedSize = 0;
-        let speedSamples = [];
-        const MAX_SAMPLES = 5; // Number of samples for moving average
+        const speedSamples = [];
+        const MAX_SAMPLES = 5;
 
         const reader = response.body.getReader();
+        const chunks = [];
 
-        const stream = new ReadableStream({
-          start: (controller) => {
-            const push = () => {
-              reader.read().then(async ({ done, value }) => {
-                if (done) {
-                  console.log("\nDownload completed!");
-                  this.onGoingDownloads[download_id].status = "completed";
-                  this.onGoingDownloads[download_id].progress = 100;
-                  this.onGoingDownloads[download_id].downloadSpeedMbps = "0 Mb/s";
-                  this.onGoingDownloads[download_id].eta = "00:00";
-                  controller.close();
-                  await saveFile(id, url, filename, null, downloadedSize === contentLength ? "completed":"interupted", null, contentLength, downloadedSize)
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-                  return;
-                }
-                if (isFirstChunk) {
-                  const str = new TextDecoder().decode(value);
-                  const match = str.match(/^\[CONTENT-LENGTH:(\d+)\]/);
-
-                  if (match) {
-                    contentLength = parseInt(match[1]);
-                    console.log("Content length:", contentLength);
-                    const stripped = value.slice(match[0].length);
-                    value = stripped; // ✅ Use modified value for streaming
-                  }
-
-                  isFirstChunk = false;
-
-                }
-
-                const currentTime = performance.now();
-                const chunkSize = value.length;
-                downloadedSize += chunkSize;
-
-                // Calculate instant speed
-                const timeDiff = (currentTime - lastUpdateTime) / 1000; // in seconds
-                const sizeDiff = downloadedSize - lastDownloadedSize;
-
-                if (timeDiff > 0) {
-                  const instantSpeed = (sizeDiff / timeDiff) / (1024 * 1024); // in MB/s
-
-                  // Add to speed samples for moving average
-                  speedSamples.push(instantSpeed);
-                  if (speedSamples.length > MAX_SAMPLES) {
-                    speedSamples.shift();
-                  }
-
-                  // Calculate average speed
-                  const avgSpeed = speedSamples.reduce((sum, speed) => sum + speed, 0) / speedSamples.length;
-
-                  // Calculate progress
-                  const progress = Math.min((downloadedSize / contentLength) * 100, 100);
-
-                  // Calculate ETA
-                  const remainingBytes = contentLength - downloadedSize;
-                  const remainingSeconds = remainingBytes / (avgSpeed * 1024 * 1024);
-                  const eta = this.formatETA(remainingSeconds);
-
-                  // Format speed
-                  let formattedSpeed;
-                  if (avgSpeed > 1) {
-                    formattedSpeed = `${avgSpeed.toFixed(2)} MB/s`;
-                  } else if (avgSpeed > 0.001) {
-                    formattedSpeed = `${(avgSpeed * 1024).toFixed(2)} KB/s`;
-                  } else {
-                    formattedSpeed = `${(avgSpeed * 1024 * 1024).toFixed(0)} B/s`;
-                  }
-
-                  // Update download info
-                  if (!this.onGoingDownloads[download_id]) {
-                    this.onGoingDownloads[download_id] = {};
-                  }
-
-                  Object.assign(this.onGoingDownloads[download_id], {
-                    // time,
-                    filename,
-                    progress,
-                    status: "downloading",
-                    eta,
-                    downloadSpeedMbps: formattedSpeed,
-                    thumbnail: "",
-                    filesize: contentLength,
-                    downloadedSize,
-                  })
-
-                  await saveFile(id, url, filename, null, "downloading", "", contentLength, downloadedSize)
-
-                  // Log progress (optional)
-                  // console.clear();
-                  // console.log(`Downloading: ${filename}`);
-                  // console.log(`Progress: ${progress.toFixed(2)}%`);
-                  // console.log(`Speed: ${formattedSpeed}`);
-                  // console.log(`ETA: ${eta}`);
-
-                  lastUpdateTime = currentTime;
-                  lastDownloadedSize = downloadedSize;
-
-
-                }
-
-                controller.enqueue(value);
-                push();
-              });
-            };
-            push();
+          // Handle first chunk which may contain content length
+          if (downloadedSize === 0 && value) {
+            const str = new TextDecoder().decode(value);
+            const match = str.match(/^\[CONTENT-LENGTH:(\d+)\]/);
+            
+            if (match) {
+              contentLength = parseInt(match[1]);
+              const stripped = value.slice(match[0].length);
+              chunks.push(stripped);
+              downloadedSize += stripped.length;
+              continue;
+            }
           }
-        });
 
-        const main_blob = await new Response(stream).blob();
-        this.saveToFile(main_blob, filename, extension)
+          chunks.push(value);
+          downloadedSize += value.length;
+
+          // Update progress periodically
+          const currentTime = performance.now();
+          const timeDiff = (currentTime - lastUpdateTime) / 1000;
+          
+          if (timeDiff > 0.5) { // Throttle updates to twice per second
+            const sizeDiff = downloadedSize - lastDownloadedSize;
+            const instantSpeed = (sizeDiff / timeDiff) / (1024 * 1024); // MB/s
+            
+            // Calculate moving average speed
+            speedSamples.push(instantSpeed);
+            if (speedSamples.length > MAX_SAMPLES) speedSamples.shift();
+            const avgSpeed = speedSamples.reduce((sum, s) => sum + s, 0) / speedSamples.length;
+            
+            // Calculate progress metrics
+            const progress = Math.min((downloadedSize / contentLength) * 100, 100);
+            const remainingBytes = contentLength - downloadedSize;
+            const remainingSeconds = remainingBytes / (avgSpeed * 1024 * 1024);
+            const eta = this.formatETA(remainingSeconds);
+            const formattedSpeed = this.formatSpeed(avgSpeed);
+
+            await this.update_download_progress({
+              id,
+              url,
+              filename,
+              status: 'downloading',
+              progress,
+              downloadSpeedMbps: formattedSpeed,
+              eta,
+              thumbnail: "",
+              contentLength,
+              filesize: contentLength,
+              downloadedSize,
+              is_audio: isAudio
+            });
+
+            lastUpdateTime = currentTime;
+            lastDownloadedSize = downloadedSize;
+          }
+        }
+
+        // Download complete - assemble blob
+        const blob = new Blob(chunks);
+        
+        // For combined downloads, store blob and check if ready to merge
+        if (this.pendingMerges[id]) {
+          this.pendingMerges[id][downloadType] = {
+            blob,
+            status: 'completed'
+          };
+          
+          await this.checkAndMergeDownloads(id);
+        } else {
+          // Single download - save immediately
+          await this.finalizeDownload(id, blob, filename, extension);
+        }
 
       } catch (error) {
         console.error("Download failed:", error);
-        if (this.onGoingDownloads[download_id]) {
-          this.onGoingDownloads[download_id].status = "failed";
+        if (downloadId && this.onGoingDownloads[downloadId]) {
+          this.onGoingDownloads[downloadId].status = "failed";
+        }
+        
+        // Clean up pending merge if one part fails
+        if (this.pendingMerges[id]) {
+          delete this.pendingMerges[id];
         }
       }
     },
 
+    /**
+     * Checks if both video and audio parts are downloaded and merges them
+     * @param {string} id - Video ID
+     */
+    async checkAndMergeDownloads(id) {
+      const pending = this.pendingMerges[id];
+      if (!pending || !pending.video?.blob || !pending.audio?.blob) return;
+
+      try {
+        this.onGoingDownloads[id].status = "merging";
+        
+        // Use FFmpeg to merge video and audio
+        const mergedBlob = await this.useFfmpeg.merge(
+          pending.video.blob,
+          pending.audio.blob,
+          pending.extension
+        );
+        
+        // Finalize the merged download
+        await this.finalizeDownload(id, mergedBlob, pending.filename, pending.extension);
+        
+        // Clean up
+        delete this.pendingMerges[id];
+      } catch (error) {
+        console.error("Failed to merge downloads:", error);
+        this.onGoingDownloads[id].status = "merge_failed";
+      }
+    },
+
+    /**
+     * Finalizes a completed download
+     * @param {string} id - Download ID
+     * @param {Blob} blob - Downloaded content
+     * @param {string} filename - Output filename
+     * @param {string} extension - File extension
+     */
+    async finalizeDownload(id, blob, filename, extension) {
+      // Update status
+      await this.update_download_progress({
+        id,
+        status: 'completed',
+        progress: 100,
+        downloadSpeedMbps: "0 Mb/s",
+        eta: '00:00',
+        downloadedSize: blob.size
+      });
+
+      // Save to IndexedDB
+      try {
+        await saveFile(
+          id,
+          this.onGoingDownloads[id]?.url || '',
+          filename,
+          blob,
+          'completed',
+          this.onGoingDownloads[id]?.thumbnail || '',
+          blob.size,
+          blob.size
+        );
+      } catch (err) {
+        console.error('Failed to persist completed download:', err);
+      }
+
+      // Offer download to user
+      this.saveToFileSystem(blob, filename, extension);
+    },
 
     /**
      * Formats speed for display
+     * @param {number} speedMBps - Speed in megabytes per second
+     * @returns {string} Formatted speed string
      */
     formatSpeed(speedMBps) {
-      if (speedMBps > 1) {
-        return `${speedMBps.toFixed(2)} MB/s`;
-      } else if (speedMBps > 0.001) {
-        return `${(speedMBps * 1024).toFixed(2)} KB/s`;
-      }
+      if (speedMBps > 1) return `${speedMBps.toFixed(2)} MB/s`;
+      if (speedMBps > 0.001) return `${(speedMBps * 1024).toFixed(2)} KB/s`;
       return `${(speedMBps * 1024 * 1024).toFixed(0)} B/s`;
     },
 
     /**
-     * Finalizes download status
+     * Saves blob to user's file system
+     * @param {Blob} blob - Data to save
+     * @param {string} filename - Base filename
+     * @param {string} extension - File extension
      */
-    finalizeDownload(downloadId) {
-      if (this.onGoingDownloads[downloadId]) {
-        this.onGoingDownloads[downloadId] = {
-          ...this.onGoingDownloads[downloadId],
-          status: "completed",
-          progress: 100,
-          downloadSpeed: "0 B/s",
-          eta: "00:00"
-        };
-      }
-    },
-
-
-
-    /**
-     * Saves blob to file system
-     */
-    saveToFile(blob, filename, extension = 'mp4') {
+    saveToFileSystem(blob, filename, extension = 'mp4') {
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
       link.download = `${filename}.${extension}`;
@@ -303,7 +422,6 @@ export const useDownloadStore = defineStore('downloadStore', {
       document.body.removeChild(link);
       URL.revokeObjectURL(link.href);
       this.decrementDownloadCount();
-      // clearBlob(download/_id) 
     },
 
     incrementDownloadCount() {
@@ -311,31 +429,7 @@ export const useDownloadStore = defineStore('downloadStore', {
     },
 
     decrementDownloadCount() {
-      this.currentDownloadCount--;
-    },
-
-    /**
-     * Updates ongoing downloads tracking
-     */
-    setDownloadStatus(id, downloadInfo) {
-      if (!this.onGoingDownloads[id]) {
-        this.onGoingDownloads[id] = downloadInfo;
-      } else {
-        Object.assign(this.onGoingDownloads[id], downloadInfo);
-      }
+      this.currentDownloadCount = Math.max(0, this.currentDownloadCount - 1);
     }
   }
 });
-
-
-
-
-
-
-
-
-
-
-
-
-

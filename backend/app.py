@@ -14,6 +14,15 @@ from fastapi.staticfiles import StaticFiles
 #     UsersNamespace,
 #     NotificationsNamespace,
 # )
+
+import sys
+import platform
+import asyncio
+
+if platform.system() == "Windows":
+    # Use the Selector event loop on Windows so subprocess support works
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    
 from config import init_db  # Your DB init logic
 from routes.instagram import instagram_router
 from routes.facebook import facebook_router

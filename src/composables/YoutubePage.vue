@@ -39,6 +39,10 @@
         </Transition>
       </n-card>
 
+      <n-dropdown trigger="hover" :options="formats" @select="handleSelect">
+        <n-button>{{ showFormat.label }}</n-button>
+      </n-dropdown>
+
       <Transition name="fade-slide">
         <n-result v-if="initialized" status="success" title="Download Initialized"
           description="Your media has been successfully initiliazed!" class="mt-6 max-w-xl">
@@ -63,14 +67,18 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { LinkOutline } from '@vicons/ionicons5'
 import router from '../router'
 import { generateUUID } from '../reusables'
 import { useRoute } from 'vue-router'
 import { useStateStore } from '../store/stateStore'
+import { useDownloadStore } from '../store/downloadStore'
+import { saveFile } from '../db/download'
+
 const stateStore = useStateStore()
 const route = useRoute()
+const downloadStore = useDownloadStore()
 
 const url = ref('')
 const playlistUrl = ref('')
@@ -80,6 +88,10 @@ const isMix = ref(false)
 const loadingDescription = ref('Processing your request...')
 const currentId = computed(() => route.params.id || null)
 const currentListId = computed(() => route.params.list_id || null)
+const abb_r = ref('yt')
+const error = ref(null)
+const isLoading = ref(false)
+const itag = ref('18')
 
 const currentUrl = computed({
   get: () => isMix.value ? playlistUrl.value : url.value,
@@ -91,33 +103,84 @@ const railStyle = ({ focused, checked }) => ({
   opacity: focused ? 0.8 : 1
 })
 
-const handleDownload = async () => {
-  if (!currentUrl.value.trim()) return
+const handleSelect = (key) => {
+  itag.value = key
+}
+
+const formats = [
+  { label: '720p (WebM)', key: '247+140' },
+  { label: '720p (MP4)', key: '137+140' },
+  { label: '360p', key: '18' }
+
+]
+
+const showFormat = computed(() => {
+  return formats.find(f => f.key === itag.value)
+    || formats.find(f => f.key === '18')
+})
+
+const isValidUrl = computed(() => {
+  const value = (url.value || '').trim()
+  return value !== '' && value.includes(`yout`)
+})
+async function handleDownload() {
+  if (!isValidUrl.value || isLoading.value) return
 
   show.value = true
   initialized.value = false
   loadingDescription.value = isMix.value
     ? 'Processing playlist...'
     : 'Extracting video...'
-
-  // Simulate download delay
-  await new Promise(resolve => setTimeout(resolve, 2000))
-
   initialized.value = true
-  show.value = false
-  setTimeout(() => {
+  const username = "Nick"
+
+  try {
+    error.value = null
     const id = generateUUID()
-    stateStore.addTask({ name: "Song", id: id, url:isMix.value?`/h/yt/list/${id}`: `/h/yt/${id}` })
+    downloadStore.onGoingDownloads[id] = {
+      status: "starting",
+      progress: 0
+    }
 
-    isMix.value ? router.push(`/h/yt/list/${id}`) : router.push(`/h/yt/${id}`);
 
-  }, 1000);
+    const unwatch = watch(
+      () => downloadStore.onGoingDownloads[id]?.status,
+      (newStatus) => {
+        if (newStatus === "downloading") {
+          isLoading.value = false
+          initialized.value = true
+          stateStore.addTask({ name: `${abb_r.value}:${id}`, id: id, url: isMix.value ? `/h/${abb_r.value}/list/${id}` : `/h/${abb_r.value}/${id}` })
+
+          unwatch()
+          setTimeout(() => {
+
+            isMix.value ? router.push(`/h/${abb_r.value}/list/${id}`) : router.push(`/h/${abb_r.value}/${id}`);
+
+            initialized.value = false
+                      resetForm()
+
+          }, 1200);
+        }
+      }
+    )
+
+    await saveFile(id, url.value)
+    await downloadStore.download_file(`${abb_r.value}/${username}/download`, id, url.value,itag.value)
+
+  } catch (err) {
+    error.value = 'Failed to start download.'
+    console.error(err)
+  } finally {
+    isLoading.value = false
+  }
 }
 
 const resetForm = () => {
   initialized.value = false
   url.value = ''
   playlistUrl.value = ''
+  isLoading.value = null
+  show.value=false
 }
 </script>
 

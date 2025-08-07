@@ -1,5 +1,8 @@
 from yt_dlp import YoutubeDL
 import os
+# from facebook_scraper import get_video_url
+import requests
+import os
 
 def download_facebook_video(video_url):
     ydl_opts = {
@@ -22,29 +25,31 @@ def download_facebook_video(video_url):
 
 
 
-from facebook_scraper import get_video_url
-import requests
-import os
 
-def download_fb_video(post_url):
-    try:
-        # Get video URL
-        video_url = get_video_url(post_url, cookies="cookies.txt")
+
+# def download_fb_video(post_url):
+#     try:
+#         # Get video URL
+#         video_url = get_video_url(post_url, cookies="cookies.txt")
         
-        # Create directory if it doesn't exist
-        os.makedirs('facebook_videos', exist_ok=True)
+#         # Create directory if it doesn't exist
+#         os.makedirs('facebook_videos', exist_ok=True)
         
-        # Download the video
-        response = requests.get(video_url, stream=True)
-        response.raise_for_status()
+#         # Download the video
+#         response = requests.get(video_url, stream=True)
+#         response.raise_for_status()
         
-        filename = f"facebook_videos/video_{int(time.time())}.mp4"
-        with open(filename, 'wb') as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                f.write(chunk)
+#         filename = f"facebook_videos/video_{int(time.time())}.mp4"
+#         with open(filename, 'wb') as f:
+#             for chunk in response.iter_content(chunk_size=8192):
+#                 f.write(chunk)
         
-        print(f"Video downloaded as {filename}")
-        return True
-    except Exception as e:
-        print(f"Error: {e}")
-        return False
+#         print(f"Video downloaded as {filename}")
+#         return True
+#     except Exception as e:
+#         print(f"Error: {e}")
+#         return False
+
+
+
+print(download_facebook_video("https://youtu.be/RE87rQkXdNw?list=RDGMEMWO-g6DgCWEqKlDtKbJA1Gw"))
