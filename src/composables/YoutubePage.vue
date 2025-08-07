@@ -152,7 +152,7 @@ async function handleDownload() {
     error.value = null
     const id = generateUUID()
     downloadStore.onGoingDownloads[id] = {
-      status: "starting",
+      status: "processing",
       progress: 0
     }
 
@@ -178,7 +178,7 @@ async function handleDownload() {
       }
     )
 
-    await saveFile(id, url.value)
+    await saveFile(id, {url:url.value,startTime:Date.now(),itag:itag.value})
     await downloadStore.download_file(`${abb_r.value}/${username}/download`, id, url.value,itag.value)
 
   } catch (err) {

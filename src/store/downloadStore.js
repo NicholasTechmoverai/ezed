@@ -89,7 +89,7 @@ export const useDownloadStore = defineStore('downloadStore', {
       const baseFields = [
         'filename', 'progress', 'status', 'eta',
         'downloadSpeedMbps', 'thumbnail', 'filesize',
-        'downloadedSize', 'url','merge_progress'
+        'downloadedSize', 'url', 'merge_progress'
       ];
 
       // Prefix for audio fields
@@ -103,7 +103,7 @@ export const useDownloadStore = defineStore('downloadStore', {
       });
 
       // Store is_audio flag separately to differentiate streams
-      target[`${prefix}is_audio`] = isAudio;
+      target[`hasAudio`] = isAudio;
 
       // Determine if complete
       const downloadedSize = prg.downloadedSize;
@@ -119,13 +119,16 @@ export const useDownloadStore = defineStore('downloadStore', {
       try {
         await saveFile(
           prg.id,
-          prg.url ?? target[`${prefix}url`],
-          prg.filename ?? target[`${prefix}filename`],
-          null, // blob
-          persistentStatus,
-          prg.thumbnail ?? target[`${prefix}thumbnail`],
-          prg.contentLength ?? target[`${prefix}filesize`],
-          prg.downloadedSize ?? target[`${prefix}downloadedSize`]
+          {
+            url: prg.url ?? target[`${prefix}url`],
+            filename: prg.filename ?? target[`${prefix}filename`],
+            status: persistentStatus,
+            thumbnail: prg.thumbnail ?? target[`${prefix}thumbnail`],
+            contentLength: prg.contentLength ?? target[`${prefix}filesize`],
+            downloadedSize: prg.downloadedSize ?? target[`${prefix}downloadedSize`],
+            stopTime: persistentStatus === 'completed' ? Date.now() : null,
+            hasAudio: isAudio || undefined
+          }
         );
       } catch (err) {
         console.error('Failed to persist download state:', err);
@@ -331,10 +334,10 @@ export const useDownloadStore = defineStore('downloadStore', {
             status: 'completed'
           };
 
-          await this.checkAndMergeDownloads(id);
+          await this.checkAndMergeDownloads(id, isAudio = false);
         } else {
           // Single download - save immediately
-          await this.finalizeDownload(id, blob, filename, extension);
+          await this.finalizeDownload(id, blob, filename, extension, isAudio);
         }
 
       } catch (error) {
@@ -354,7 +357,7 @@ export const useDownloadStore = defineStore('downloadStore', {
      * Checks if both video and audio parts are downloaded and merges them
      * @param {string} id - Video ID
      */
-    async checkAndMergeDownloads(id) {
+    async checkAndMergeDownloads(id, isAudio) {
       const pending = this.pendingMerges[id];
       if (!pending || !pending.video?.blob || !pending.audio?.blob) return;
 
@@ -369,7 +372,7 @@ export const useDownloadStore = defineStore('downloadStore', {
         );
 
         // Finalize the merged download
-        await this.finalizeDownload(id, mergedBlob, pending.filename, pending.extension);
+        await this.finalizeDownload(id, mergedBlob, pending.filename, pending.extension, isAudio);
 
         // Clean up
         delete this.pendingMerges[id];
@@ -385,9 +388,9 @@ export const useDownloadStore = defineStore('downloadStore', {
      * @param {Blob} blob - Downloaded content
      * @param {string} filename - Output filename
      * @param {string} extension - File extension
+     * @param {string} id - File id to clear blob after saving
      */
-    async finalizeDownload(id, blob, filename, extension) {
-      // Update status
+    async finalizeDownload(id, blob, filename, extension, isAudio = false) {
       await this.update_download_progress({
         id,
         status: 'completed',
@@ -401,13 +404,14 @@ export const useDownloadStore = defineStore('downloadStore', {
       try {
         await saveFile(
           id,
-          this.onGoingDownloads[id]?.url || '',
-          filename,
-          blob,
-          'completed',
-          this.onGoingDownloads[id]?.thumbnail || '',
-          blob.size,
-          blob.size
+          {
+            url: this.onGoingDownloads[id]?.url || '',
+            filename: filename,
+            [isAudio ? 'audioBlob' : 'videoBlob']: blob,
+            status: 'completed',
+            thumbnail: this.onGoingDownloads[id]?.thumbnail || '',
+            downloadedSize: blob.size
+          }
         );
       } catch (err) {
         console.error('Failed to persist completed download:', err);
@@ -416,7 +420,7 @@ export const useDownloadStore = defineStore('downloadStore', {
 
 
       // Offer download to user
-      this.saveToFileSystem(blob, filename, extension);
+      this.saveToFileSystem(blob, filename, extension, id);
     },
 
     /**
@@ -436,12 +440,12 @@ export const useDownloadStore = defineStore('downloadStore', {
      * @param {string} filename - Base filename
      * @param {string} extension - File extension
      */
-    saveToFileSystem(blobOrUrl, filename = 'download', extension = 'mp4') {
+    saveToFileSystem(blobOrUrl, filename = 'download', extension = 'mp4', id = null) {
       const fullName = `${filename}${extension.startsWith('.') ? extension : '.' + extension}`;
 
       if (blobOrUrl instanceof Blob) {
         const url = URL.createObjectURL(blobOrUrl);
-        this.triggerDownload(url, fullName);
+        this.triggerDownload(url, fullName, id);
         URL.revokeObjectURL(url); // Clean up after download
       } else if (typeof blobOrUrl === 'string') {
         this.triggerDownload(blobOrUrl, fullName);
@@ -450,13 +454,14 @@ export const useDownloadStore = defineStore('downloadStore', {
       }
     },
 
-    triggerDownload(url, filename) {
+    triggerDownload(url, filename, id) {
       const a = document.createElement('a');
       a.href = url;
       a.download = filename;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
+      if (id) clearBlob(id)
     },
 
     incrementDownloadCount() {

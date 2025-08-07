@@ -115,7 +115,7 @@ async function handleDownload() {
 
     // Start the download
     await downloadStore.download_file(`${props.abb_r}/${username}/download`, id, url.value)
-    await saveFile(id, url.value)
+    await saveFile(id, {url:url.value,startTime:Date.now()})
 
   } catch (err) {
     error.value = 'Failed to start download.'
