@@ -89,7 +89,7 @@ export const useDownloadStore = defineStore('downloadStore', {
       const baseFields = [
         'filename', 'progress', 'status', 'eta',
         'downloadSpeedMbps', 'thumbnail', 'filesize',
-        'downloadedSize', 'url'
+        'downloadedSize', 'url','merge_progress'
       ];
 
       // Prefix for audio fields

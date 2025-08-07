@@ -28,6 +28,7 @@ export function useFfmpeg() {
     const entry = downloadStore.onGoingDownloads[id];
     if (entry) {
       entry.merge_progress = p;
+      downloadStore.update_download_progress({id:id,merge_progress:p,status:'merging'})
     }
   };
 
@@ -39,26 +40,26 @@ export function useFfmpeg() {
     cleanupListeners();
 
     try {
-      console.log('Initializing FFmpeg...');
+      // console.log('Initializing FFmpeg...');
 
-      ffmpeg.on('log', ({ message }) => {
-        console.debug('[FFmpeg]', message);
-      });
+      // ffmpeg.on('log', ({ message }) => {
+      //   console.debug('[FFmpeg]', message);
+      // });
 
-      ffmpeg.on('progress', ({ progress: p }) => {
-        const newProgress = Math.round(p * 100);
-        if (newProgress !== progress.value) {
-          progress.value = newProgress;
-          console.debug(`[FFmpeg] Progress: ${newProgress}%`);
-          if (id) {
-            updateMergeProgress(id, newProgress);
-          }
-        }
-      });
+      // ffmpeg.on('progress', ({ progress: p }) => {
+      //   const newProgress = Math.round(p * 100);
+      //   if (newProgress !== progress.value) {
+      //     progress.value = newProgress;
+      //     console.debug(`[FFmpeg] Progress: ${newProgress}%`);
+      //     if (id) {
+      //       updateMergeProgress(id, newProgress);
+      //     }
+      //   }
+      // });
 
-      await ffmpeg.load();
-      ready.value = true;
-      console.log('FFmpeg initialized successfully');
+      // await ffmpeg.load();
+      // ready.value = true;
+      console.log('FFmpeg initialization');
     } catch (err) {
       error.value = err.message || 'Failed to initialize FFmpeg';
       console.error('FFmpeg initialization error:', err);
@@ -68,18 +69,34 @@ export function useFfmpeg() {
     }
   };
 
-  const mergeVideoAudio = async (videoFile, audioFile, id = null) => {
-    await load(id); // Always call load to rebind progress handler with correct ID
-    if (error.value) throw new Error(error.value);
 
+
+  const mergeVideoAudio = async (videoFile, audioFile, id = null) => {
+    const ffmpeg = new FFmpeg();
     const TEMP_FILES = {
-      video: 'input_video.mp4',
-      audio: 'input_audio.mp3',
-      output: 'output.mp4',
+      video: `input_video_${id || 'temp'}.mp4`,
+      audio: `input_audio_${id || 'temp'}.mp3`,
+      output: `output_${id || 'temp'}.mp4`,
     };
 
     try {
-      console.log('Starting video/audio merge...');
+      console.log('Initializing FFmpeg...');
+
+      await ffmpeg.load();
+      console.log('FFmpeg initialized successfully');
+
+
+      ffmpeg.on('log', ({ message }) => console.debug(`[${id}] FFmpeg:`, message));
+      ffmpeg.on('progress', ({ progress }) => {
+        const percent = Math.round(progress * 100);
+        if (id) {
+          downloadStore.update_download_progress({
+            id,
+            merge_progress: percent,
+            status: percent < 100 ? 'merging' : 'merged',
+          });
+        }
+      });
 
       const [videoData, audioData] = await Promise.all([
         fetchFile(videoFile),
@@ -104,6 +121,7 @@ export function useFfmpeg() {
       ]);
 
       const outputData = await ffmpeg.readFile(TEMP_FILES.output);
+      const blobUrl = URL.createObjectURL(new Blob([outputData.buffer], { type: 'video/mp4' }));
 
       await Promise.all([
         ffmpeg.deleteFile(TEMP_FILES.video),
@@ -111,29 +129,19 @@ export function useFfmpeg() {
         ffmpeg.deleteFile(TEMP_FILES.output),
       ]);
 
-      outputUrl.value = URL.createObjectURL(
-        new Blob([outputData.buffer], { type: 'video/mp4' })
-      );
-
-      console.log('Merge completed successfully');
-      return outputUrl.value;
+      return blobUrl;
     } catch (err) {
-      error.value = err.message || 'Merge failed';
-      console.error('Merge error:', err);
-
-      try {
-        await Promise.allSettled([
-          ffmpeg.deleteFile(TEMP_FILES.video),
-          ffmpeg.deleteFile(TEMP_FILES.audio),
-          ffmpeg.deleteFile(TEMP_FILES.output),
-        ]);
-      } catch (cleanupErr) {
-        console.warn('Cleanup error:', cleanupErr);
+      if (id) {
+        downloadStore.update_download_progress({
+          id,
+          merge_progress: 0,
+          status: 'merge_failed',
+        });
       }
-
       throw err;
     }
   };
+
 
   const dispose = () => {
     if (outputUrl.value) {
