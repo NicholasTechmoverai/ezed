@@ -108,11 +108,25 @@ const handleSelect = (key) => {
 }
 
 const formats = [
+  // WebM (VP9) + Audio 140 (Best Quality)
+  { label: '2160p (4K WebM)', key: '313+140' },
+  { label: '1440p (WebM)', key: '272+140' },
+  { label: '1080p (WebM)', key: '248+140' },
   { label: '720p (WebM)', key: '247+140' },
-  { label: '720p (MP4)', key: '137+140' },
-  { label: '360p', key: '18' }
+  { label: '480p (WebM)', key: '244+140' },
+  { label: '360p (WebM)', key: '243+140' },
 
-]
+  // MP4 (H.264) + Audio 140 (Better Compatibility)
+  { label: '2160p (4K MP4)', key: '313+140' },
+  { label: '1440p (MP4)', key: '271+140' },
+  { label: '1080p (MP4)', key: '137+140' },
+  { label: '720p (MP4)', key: '136+140' },
+  { label: '480p (MP4)', key: '135+140' },
+
+  // Single-Stream (No Merging Needed)
+  { label: '720p (MP4 - Single File)', key: '22' },
+  { label: '360p (MP4 - Single File)', key: '18' },
+];
 
 const showFormat = computed(() => {
   return formats.find(f => f.key === itag.value)

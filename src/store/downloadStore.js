@@ -166,9 +166,14 @@ export const useDownloadStore = defineStore('downloadStore', {
             extension: ext || 'mp4'
           };
 
-          await this.handle_download(endpoint, id, url, videoTag, ext, startByte, format, false);
-          await this.handle_download(endpoint, id, url, audioTag, ext, startByte, format, true);
-          return;
+          // In download_file():
+          if (videoTag && audioTag) {
+            await Promise.all([
+              this.handle_download(endpoint, id, url, videoTag, ext, startByte, format, false),
+              this.handle_download(endpoint, id, url, audioTag, ext, startByte, format, true)
+            ]);
+            return;
+          }
         }
       }
 
