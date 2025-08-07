@@ -94,7 +94,7 @@ app.include_router(x_router, prefix="/api/x")
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 VUE_DIST_DIR = os.path.abspath(os.path.join(BASE_DIR, "..", "dist"))
 BASE_DIRECTORY = "uploads"
-app.mount("/uploads", StaticFiles(directory=BASE_DIRECTORY), name="uploads")
+app.mount("/static", StaticFiles(directory=BASE_DIRECTORY), name="uploads")
 # app.mount("/static", StaticFiles(directory=VUE_DIST_DIR), name="static")
 # @app.get("/", include_in_schema=False)
 # async def serve_root():
