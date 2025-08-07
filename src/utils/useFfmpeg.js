@@ -6,6 +6,7 @@ import { ref, onMounted, onUnmounted } from 'vue';
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { fetchFile } from '@ffmpeg/util';
 import { useDownloadStore } from '../store/downloadStore';
+import { NInputGroupLabel } from 'naive-ui';
 
 export function useFfmpeg() {
   const ffmpeg = new FFmpeg();
@@ -22,7 +23,7 @@ export function useFfmpeg() {
     ffmpeg.off('progress');
   };
 
-  const updateMergeProgress = (id, p) => {
+  const updateMergeProgress = async (id, p) => {
     if (!id) return;
     const entry = downloadStore.onGoingDownloads[id];
     if (entry) {
@@ -30,8 +31,8 @@ export function useFfmpeg() {
     }
   };
 
-  const load = async () => {
-    if (ready.value || loading.value) return;
+  const load = async (id = null) => {
+    if (loading.value) return; // Allow re-binding listeners if already loaded
 
     loading.value = true;
     error.value = null;
@@ -49,6 +50,9 @@ export function useFfmpeg() {
         if (newProgress !== progress.value) {
           progress.value = newProgress;
           console.debug(`[FFmpeg] Progress: ${newProgress}%`);
+          if (id) {
+            updateMergeProgress(id, newProgress);
+          }
         }
       });
 
@@ -65,7 +69,7 @@ export function useFfmpeg() {
   };
 
   const mergeVideoAudio = async (videoFile, audioFile, id = null) => {
-    if (!ready.value) await load();
+    await load(id); // Always call load to rebind progress handler with correct ID
     if (error.value) throw new Error(error.value);
 
     const TEMP_FILES = {
@@ -76,15 +80,6 @@ export function useFfmpeg() {
 
     try {
       console.log('Starting video/audio merge...');
-
-      ffmpeg.on('progress', ({ progress: p }) => {
-        const mergeProgress = Math.round(p * 100);
-        if (mergeProgress !== progress.value) {
-          progress.value = mergeProgress;
-          updateMergeProgress(id, mergeProgress);
-          console.debug(`[FFmpeg][${id}] Merge Progress: ${mergeProgress}%`);
-        }
-      });
 
       const [videoData, audioData] = await Promise.all([
         fetchFile(videoFile),
