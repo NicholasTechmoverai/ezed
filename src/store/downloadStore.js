@@ -341,10 +341,9 @@ export const useDownloadStore = defineStore('downloadStore', {
         this.onGoingDownloads[id].status = "merging";
         
         // Use FFmpeg to merge video and audio
-        const mergedBlob = await this.useFfmpeg.merge(
+        const mergedBlob = await this.useFfmpeg.mergeVideoAudio(
           pending.video.blob,
           pending.audio.blob,
-          pending.extension
         );
         
         // Finalize the merged download
