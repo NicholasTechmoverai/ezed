@@ -45,19 +45,23 @@
           <!-- Progress overlay -->
           <transition name="fade">
             <div class="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+              <transition name="fade">
               <div v-if="downloadStatus === 'merging'">
                 <n-progress type="circle" :percentage="merge_progress">
                   <span style="text-align: center">{{ merge_progress }} merging</span>
                 </n-progress>
               </div>
-              <div v-if="isLoaderActive && downloadStatus != 'merging'">
-                <n-progress type="circle" :percentage="downloadPercentage" :color="progressColor"
+            </transition>
+              <transition name="fade">
+              <div v-if="isLoaderActive && downloadStatus != 'merging'" class="flex items-center justify-center">
+                <n-progress type="circle" :percentage="averageDownloadPercentage" :color="progressColor"
                   :rail-color="changeColor(progressColor, { alpha: 0.2 })" :stroke-width="6" :gap-degree="90"
                   :show-indicator="false" class="scale-90" />
                 <span class="absolute text-white font-medium text-sm">
-                  {{ downloadPercentage }}%
+                  {{ averageDownloadPercentage }}%
                 </span>
               </div>
+            </transition>
             </div>
           </transition>
 
@@ -213,7 +217,6 @@
         </template>
       </n-result>
     </n-card>
-    {{ localFileData }}
   </div>
 
 </template>
@@ -347,6 +350,16 @@ const fileExtension = computed(() => {
   return ext.toUpperCase()
 })
 const formattedFileSize = computed(() => formatFileSize(localFileData.value?.filesize))
+
+const averageDownloadPercentage = computed(() => {
+  if (!localFileData.value?.filesize){
+    return 0
+  }else if(!localFileData.value?.a_filesize && !localFileData.value?.a_downloadedSize){
+      return Math.min(100, Math.round((localFileData.value?.downloadedSize / localFileData.value?.filesize) * 100) || 0)
+  }else{
+  return Math.min(100, Math.round(((localFileData.value?.downloadedSize / localFileData.value?.filesize) + (localFileData.value?.a_downloadedSize / localFileData.value?.a_filesize)/2)  * 100) || 0)
+  }
+})
 const downloadStatus = computed(() => localFileData.value?.status || 'default')
 const downloadPercentage = computed(() => {
   if (!localFileData.value?.filesize) return 0
@@ -376,7 +389,7 @@ const a_downloadPercentage = computed(() => {
   return Math.min(100, Math.round((localFileData.value?.a_downloadedSize / localFileData.value?.a_filesize) * 100) || 0)
 })
 const merge_progress = computed(() => localFileData.value?.merge_progress || null)
-const hasAudio = computed(() => localFileData.value?.is_audio || false)
+const hasAudio = computed(() => localFileData.value?.a_is_audio || false)
 const progressColor = computed(() => {
   switch (downloadStatus.value) {
     case 'active': return themeVars.value.primaryColor
