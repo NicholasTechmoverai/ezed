@@ -48,6 +48,7 @@ import { useStateStore } from '../store/stateStore'
 import api from '../api'
 import { useDownloadStore } from '../store/downloadStore'
 import { saveFile } from '../db/download'
+import { useMessage } from 'naive-ui'
 
 const props = defineProps({
   d_type: {
@@ -64,6 +65,7 @@ const stateStore = useStateStore()
 const router = useRouter()
 const route = useRoute()
 const downloadStore = useDownloadStore()
+const message = useMessage()
 
 const url = ref('')
 const error = ref(null)

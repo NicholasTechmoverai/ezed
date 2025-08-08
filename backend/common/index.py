@@ -15,7 +15,6 @@ import urllib.parse
 import subprocess
 from typing import AsyncGenerator, Optional, Tuple, List, Dict, Union
 import shutil
-from uuid import uuid4
 
 def check_ffmpeg_available():
     if not shutil.which('ffmpeg'):
@@ -23,6 +22,25 @@ def check_ffmpeg_available():
     
     
 logger = setup_logger("StreamDownloader")
+
+
+audio_formats = [
+    "251",  # Opus ~160kbps webm
+    "140",  # AAC ~128kbps m4a
+    "250",  # Opus ~70kbps webm
+    "249",  # Opus ~50kbps webm
+    "234",  # Opus ~80kbps webm
+    "233"   # Opus ~60kbps webm
+]
+
+video_formats = {
+    480: ["244", "606"],             # 480p WebM
+    720: ["247", "609"],             # 720p WebM
+    1080: ["248", "614", "616"],     # 1080p WebM
+    1440: ["271"],                   # 1440p WebM
+    2160: ["313"]                    # 4K WebM
+}
+
 
 class UnsupportedPlatformError(Exception):
     pass
@@ -94,48 +112,68 @@ class StreamDownloader:
     #         async for chunk in self._stream_from_url(video_url, start_byte):
     #             yield chunk
     
-    async def _handle_youtube(self, url: str, itag: str, start_byte: int, timeout: int = 30):
-        """YouTube streaming handler with timeout support"""
+ 
+
+    async def _handle_youtube(self, url: str, itag: str, start_byte: int, timeout: int = 30, failed_itags=None):
+        """YouTube streaming handler with retry support."""
+        if failed_itags is None:
+            failed_itags = []
+
         try:
-            if '+' in itag:
-                video_itag, audio_itag = itag.split('+')
-                try:
-                    video_url, audio_url = await asyncio.wait_for(
-                        self._get_youtube_stream_urls(url, video_itag, audio_itag),
-                        timeout=timeout
-                    )
-                    async for chunk in self._stream_merged_youtube(video_url, audio_url, start_byte):
-                        yield chunk
-                except asyncio.TimeoutError:
-                    raise RuntimeError("Timeout while fetching stream URLs")
-            else:
-                ydl_opts = {
-                    'format': itag,
-                    'noplaylist': True,
-                    'quiet': True,
-                    'extract_flat': False,
-                }
-                
-                loop = asyncio.get_event_loop()
-                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                    info = await loop.run_in_executor(None, lambda: ydl.extract_info(url, download=False))
-                    media_url = next(
-                        (fmt['url'] for fmt in info.get('formats', []) 
-                        if str(fmt.get('format_id')) == str(itag)
-                    ), None)
+            ydl_opts = {
+                'format': itag,
+                'noplaylist': True,
+                'quiet': True,
+                'extract_flat': False,
+            }
+            # Remove playlist parts
+            url = url.split('?list')[0].split('&list')[0]
 
-                    if not media_url:
-                        available = [f['format_id'] for f in info.get('formats', [])]
-                        raise ValueError(
-                            f"Format {itag} not available. Existing formats: {available}"
-                        )
+            loop = asyncio.get_event_loop()
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = await loop.run_in_executor(None, lambda: ydl.extract_info(url, download=False))
+                media_url = next(
+                    (fmt['url'] for fmt in info.get('formats', [])
+                    if str(fmt.get('format_id')) == str(itag)),
+                    None
+                )
 
-                    async for chunk in self._stream_from_url(media_url, start_byte):
-                        yield chunk
-                        
+                if not media_url:
+                    available = [f['format_id'] for f in info.get('formats', [])]
+                    raise ValueError(f"Format {itag} not available. Existing formats: {available}")
+
+                async for chunk in self._stream_from_url(media_url, start_byte):
+                    yield chunk
+
         except Exception as e:
-            logger.error("YouTube streaming failed: %s", str(e))
-            raise
+            if "Requested format is not available" in str(e):
+                logger.error("YouTube streaming failed for itag %s: %s", itag, str(e))
+                failed_itags.append(itag)
+
+                # Retry with next available format
+                if itag in audio_formats:
+                    for trial_itag in audio_formats:
+                        if trial_itag not in failed_itags:
+                            logger.info("Retrying with audio itag %s", trial_itag)
+                            async for chunk in self._handle_youtube(url, trial_itag, start_byte, timeout, failed_itags):
+                                yield chunk
+                            return
+
+                else:
+                    for resolution, formats in video_formats.items():
+                        if itag in formats:
+                            for trial_itag in formats:
+                                if trial_itag not in failed_itags:
+                                    logger.info("Retrying with video itag %s", trial_itag)
+                                    async for chunk in self._handle_youtube(url, trial_itag, start_byte, timeout, failed_itags):
+                                        yield chunk
+                                    return
+
+                logger.error("All fallback formats failed for %s", url)
+            else:
+                logger.error("Streaming youtube failed %s", str(e))
+                raise 
+                    
 
     async def _get_youtube_stream_urls(self, url: str, video_itag: str, audio_itag: str) -> tuple[str, str]:
         """Get both video and audio stream URLs with validation"""

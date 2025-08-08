@@ -29,7 +29,7 @@
                   </template>
                 </n-input>
 
-                <n-button type="primary" :loading="isLoading" :disabled="!currentUrl.trim() || isLoading"
+                <n-button type="primary" :loading="isLoading" :disabled="!isValidUrl || isLoading"
                   @click="handleDownload" size="large" block class="transition-transform hover:scale-[1.01]">
                   {{ isLoading ? (isMix ? 'Getting Songs...' : 'Downloading...') : (isMix ? 'Get Songs' : 'Download') }}
                 </n-button>
@@ -75,10 +75,12 @@ import { useRoute } from 'vue-router'
 import { useStateStore } from '../store/stateStore'
 import { useDownloadStore } from '../store/downloadStore'
 import { saveFile } from '../db/download'
+import { useMessage } from 'naive-ui'
 
 const stateStore = useStateStore()
 const route = useRoute()
 const downloadStore = useDownloadStore()
+const message = useMessage()
 
 const url = ref('')
 const playlistUrl = ref('')
@@ -109,7 +111,7 @@ const handleSelect = (key) => {
 const formats = [
   // WebM (VP9) + Audio 140 (Best Quality)
   { label: '2160p (4K WebM)', key: '313+140' },
-  { label: '1440p (WebM)', key: '272+140' },
+  { label: '1440p (WebM)', key: '272+251' },
   { label: '1080p (WebM)', key: '248+140' },
   { label: '720p (WebM)', key: '247+140' },
   { label: '480p (WebM)', key: '244+140' },
@@ -123,7 +125,7 @@ const formats = [
   { label: '480p (MP4)', key: '135+140' },
 
   // Single-Stream (No Merging Needed)
-  { label: '720p (MP4 - Single File)', key: '22' },
+  { label: '720p (MP4 - Single File)', key: '270' },
   { label: '360p (MP4 - Single File)', key: '18' },
 ];
 
@@ -133,11 +135,22 @@ const showFormat = computed(() => {
 })
 
 const isValidUrl = computed(() => {
-  const value = (url.value || '').trim()
-  return value !== '' && value.includes(`yout`)
-})
+  let value = '';
+
+  if (isMix.value) {
+    value = (playlistUrl.value || '').trim();
+  } else {
+    value = (url.value || '').trim().split('?list')[0]; 
+  }
+
+  return value !== '' && value.includes('yout');
+});
+
 async function handleDownload() {
-  // if (!isValidUrl.value || isLoading.value) return
+  if (!isValidUrl.value || isLoading.value) return message.error("Invalid url for selected section!")
+  if(!isMix){
+        ur.value = (url.value || '').trim().split('?list')[0];
+  }
 
   isLoading.value = true
   initialized.value = false
