@@ -71,7 +71,7 @@
             <!-- Status badge -->
             <transition name="slide-up">
               <n-tag :type="statusTagType" round
-                class="absolute bottom-3 left-1/2 transform -translate-x-1/2 shadow-md bg-gray-500/30 backdrop-blur-3">
+                class="flex items-center justify-center absolute bottom-3 left-1/2 transform -translate-x-1/2 shadow-md bg-gray-500/30 backdrop-blur-3">
                 <template #icon>
                   <n-icon :component="statusIcon" />
                 </template>
@@ -371,7 +371,7 @@ const audioDownloadPercentage = computed(() => {
 
 const downloadSpeed = computed(() => {
   const speed = localFileData.value?.downloadSpeedMbps
-  return speed ? `${speed} MB/s` : '0 KB/s'
+  return speed ? `${speed}` : '0 KB/s'
 })
 
 const timeRemaining = computed(() => {

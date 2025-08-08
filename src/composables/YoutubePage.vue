@@ -19,7 +19,7 @@
         </div>
         <Transition name="fade-slide" mode="out-in">
           <div :key="isMix ? 'playlist' : 'single'" class="mt-2">
-            <n-spin :show="show" :description="loadingDescription">
+            <n-spin :show="isLoading" :description="loadingDescription">
               <n-space vertical :size="20">
                 <n-input v-model:value="currentUrl"
                   :placeholder="isMix ? 'Paste playlist URL...' : 'Paste video URL...'" clearable size="large"
@@ -29,9 +29,9 @@
                   </template>
                 </n-input>
 
-                <n-button type="primary" :loading="show" :disabled="!currentUrl.trim() || show" @click="handleDownload"
-                  size="large" block class="transition-transform hover:scale-[1.01]">
-                  {{ show ? 'Downloading...' : 'Download' }}
+                <n-button type="primary" :loading="isLoading" :disabled="!currentUrl.trim() || isLoading"
+                  @click="handleDownload" size="large" block class="transition-transform hover:scale-[1.01]">
+                  {{ isLoading ? (isMix ? 'Getting Songs...' : 'Downloading...') : (isMix ? 'Get Songs' : 'Download') }}
                 </n-button>
               </n-space>
             </n-spin>
@@ -83,14 +83,13 @@ const downloadStore = useDownloadStore()
 const url = ref('')
 const playlistUrl = ref('')
 const initialized = ref(false)
-const show = ref(false)
+const isLoading = ref(false)
 const isMix = ref(false)
 const loadingDescription = ref('Processing your request...')
 const currentId = computed(() => route.params.id || null)
 const currentListId = computed(() => route.params.list_id || null)
 const abb_r = ref('yt')
 const error = ref(null)
-const isLoading = ref(false)
 const itag = ref('18')
 
 const currentUrl = computed({
@@ -138,14 +137,13 @@ const isValidUrl = computed(() => {
   return value !== '' && value.includes(`yout`)
 })
 async function handleDownload() {
-  if (!isValidUrl.value || isLoading.value) return
+  // if (!isValidUrl.value || isLoading.value) return
 
-  show.value = true
+  isLoading.value = true
   initialized.value = false
   loadingDescription.value = isMix.value
     ? 'Processing playlist...'
     : 'Extracting video...'
-  initialized.value = true
   const username = "Nick"
 
   try {
@@ -157,29 +155,41 @@ async function handleDownload() {
     }
 
 
-    const unwatch = watch(
-      () => downloadStore.onGoingDownloads[id]?.status,
-      (newStatus) => {
-        if (newStatus === "downloading") {
-          isLoading.value = false
-          initialized.value = true
-          stateStore.addTask({ name: `${abb_r.value}:${id}`, id: id, url: isMix.value ? `/h/${abb_r.value}/list/${id}` : `/h/${abb_r.value}/${id}` })
+    setTimeout(() => {
+      isLoading.value = false
+      initialized.value = true
+      // stateStore.addTask({ name: `${abb_r.value}:${id}`, id: id, url: isMix.value ? `/h/${abb_r.value}/list/${id}` : `/h/${abb_r.value}/${id}` })
+      isMix.value ? router.push(`/h/${abb_r.value}/list/${id}`) : router.push(`/h/${abb_r.value}/${id}`);
+      resetForm()
 
-          unwatch()
-          setTimeout(() => {
+    }, 1500);
 
-            isMix.value ? router.push(`/h/${abb_r.value}/list/${id}`) : router.push(`/h/${abb_r.value}/${id}`);
 
-            initialized.value = false
-                      resetForm()
+    if (isMix.value) {
+      await saveFile(id, {
+        url: url.value,
+        startTime: Date.now(),
+        islist: true,
+      });
+      await downloadStore.getListSongs(
+        `${abb_r.value}/${username}/list`,
+        playlistUrl.value,
+        id
+      );
 
-          }, 1200);
-        }
-      }
-    )
-
-    await saveFile(id, {url:url.value,startTime:Date.now(),itag:itag.value})
-    await downloadStore.download_file(`${abb_r.value}/${username}/download`, id, url.value,itag.value)
+    } else {
+      await saveFile(id, {
+        url: url.value,
+        startTime: Date.now(),
+        itag: itag.value,
+      });
+      await downloadStore.download_file(
+        `${abb_r.value}/${username}/download`,
+        id,
+        url.value,
+        itag.value
+      );
+    }
 
   } catch (err) {
     error.value = 'Failed to start download.'
@@ -193,8 +203,7 @@ const resetForm = () => {
   initialized.value = false
   url.value = ''
   playlistUrl.value = ''
-  isLoading.value = null
-  show.value=false
+  isLoading.value = false
 }
 </script>
 

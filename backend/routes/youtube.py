@@ -84,7 +84,7 @@ async def download_instagram(
 class ListRequest (BaseModel):
     listUrl: str = None
     
-@youtube_router.post('/{username}/list/')
+@youtube_router.post('/{username}/list')
 @limiter.limit("50/day")
 async def get_youtube_songs(request: Request, data: ListRequest):
     if not data.listUrl:

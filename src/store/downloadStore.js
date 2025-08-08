@@ -4,6 +4,7 @@ import { B_URL } from "@/utils/index.js";
 import { clearBlob, saveFile } from "../db/download.js"
 import { useStateStore } from './stateStore.js';
 import { useFfmpeg } from '../utils/useFfmpeg.js';
+import axios from 'axios';
 
 export const useDownloadStore = defineStore('downloadStore', {
   state: () => ({
@@ -14,7 +15,7 @@ export const useDownloadStore = defineStore('downloadStore', {
     pendingMerges: {},    // Tracks downloads waiting to be merged
     currentDownloadCount: 0,
     mergeProgress: {},
-    // mergeProgress: useFfmpeg.progress
+    listSongs: {}
   }),
 
   getters: {
@@ -470,6 +471,42 @@ export const useDownloadStore = defineStore('downloadStore', {
 
     decrementDownloadCount() {
       this.currentDownloadCount = Math.max(0, this.currentDownloadCount - 1);
+    },
+
+    async getListSongs(endpoint, listUrl, id) {
+      if (!this.listSongs[id]) this.listSongs[id] = {};
+      this.stateStore.addTask({ name: `list:${id}`, id: id, listUrl: listUrl, url: `/h/yt/list/${id}` });
+
+      this.listSongs[id] = {
+        ...this.listSongs[id],
+        isLoading: true,
+        url: listUrl
+      };
+
+      try {
+        const { data } = await axios.post(`${B_URL}/${endpoint}`, { listUrl });
+
+        this.listSongs[id] = {
+          ...this.listSongs[id],
+          songs: data.songs ?? [],
+          name: data.playlist_name ?? 'Untitled',
+          count: data.count ?? null,
+          isLoading: false
+
+        };
+        this.stateStore.addTask({ name: `list:${data.playlist_name}` || "Untitled", id: id, listUrl: listUrl, url: `/h/yt/list/${id}` });
+
+      } catch (error) {
+        console.error(`Failed to fetch playlist [${id}]:`, error);
+        this.listSongs[id] = {
+          ...this.listSongs[id],
+          songs: [],
+          name: 'Error loading playlist',
+          isLoading: false
+        };
+      }
     }
+
+
   }
 });

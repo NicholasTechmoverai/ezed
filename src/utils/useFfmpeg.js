@@ -6,6 +6,7 @@ import { ref, onMounted, onUnmounted } from 'vue';
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { fetchFile } from '@ffmpeg/util';
 import { useDownloadStore } from '../store/downloadStore';
+import { NInputGroupLabel } from 'naive-ui';
 
 export function useFfmpeg() {
   const ffmpeg = new FFmpeg();
@@ -22,6 +23,34 @@ export function useFfmpeg() {
     ffmpeg.off('progress');
   };
 
+  const updateMergeProgress = async (id, p) => {
+    if (!id) return;
+    const entry = downloadStore.onGoingDownloads[id];
+    if (entry) {
+      entry.merge_progress = p;
+      downloadStore.update_download_progress({id:id,merge_progress:p,status:'merging'})
+    }
+  };
+
+  const load = async (id = null) => {
+    if (loading.value) return; 
+
+    loading.value = true;
+    error.value = null;
+    cleanupListeners();
+
+    try {
+      console.log('FFmpeg initialization');
+    } catch (err) {
+      error.value = err.message || 'Failed to initialize FFmpeg';
+      console.error('FFmpeg initialization error:', err);
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+
 
   const mergeVideoAudio = async (videoFile, audioFile, id = null) => {
     const ffmpeg = new FFmpeg();
@@ -32,13 +61,13 @@ export function useFfmpeg() {
     };
 
     try {
-      // console.log('Initializing FFmpeg...');
+      console.log('Initializing FFmpeg...');
 
       await ffmpeg.load();
-      // console.log('FFmpeg initialized successfully');
+      console.log('FFmpeg initialized successfully');
 
 
-      // ffmpeg.on('log', ({ message }) => console.debug(`[${id}] FFmpeg:`, message));
+      ffmpeg.on('log', ({ message }) => console.debug(`[${id}] FFmpeg:`, message));
       ffmpeg.on('progress', ({ progress }) => {
         const percent = Math.round(progress * 100);
         if (id) {
@@ -104,6 +133,12 @@ export function useFfmpeg() {
   };
 
   onUnmounted(dispose);
+
+  onMounted(() => {
+    if (typeof window !== 'undefined') {
+      setTimeout(load, 500);
+    }
+  });
 
   return {
     ready,
