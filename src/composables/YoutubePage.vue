@@ -76,6 +76,7 @@ import { useStateStore } from '../store/stateStore'
 import { useDownloadStore } from '../store/downloadStore'
 import { saveFile } from '../db/download'
 import { useMessage } from 'naive-ui'
+import { normalizeYouTubeUrl } from '../utils/others'
 
 const stateStore = useStateStore()
 const route = useRoute()
@@ -93,6 +94,7 @@ const currentListId = computed(() => route.params.list_id || null)
 const abb_r = ref('yt')
 const error = ref(null)
 const itag = ref('18')
+const isValidUrl = ref(false)
 
 const currentUrl = computed({
   get: () => isMix.value ? playlistUrl.value : url.value,
@@ -115,41 +117,46 @@ const formats = [
   { label: '1080p (WebM)', key: '248+140' },
   { label: '720p (WebM)', key: '247+140' },
   { label: '480p (WebM)', key: '244+140' },
-  { label: '360p (WebM)', key: '243+140' },
-
-  // MP4 (H.264) + Audio 140 (Better Compatibility)
-  { label: '2160p (4K MP4)', key: '313+140' },
-  { label: '1440p (MP4)', key: '271+140' },
-  { label: '1080p (MP4)', key: '137+140' },
-  { label: '720p (MP4)', key: '136+140' },
-  { label: '480p (MP4)', key: '135+140' },
-
-  // Single-Stream (No Merging Needed)
-  { label: '720p (MP4 - Single File)', key: '270' },
   { label: '360p (MP4 - Single File)', key: '18' },
+  { label: 'mp3 (audio)', key: '140' },
 ];
+
+watch(
+  [url, () => isMix.value],
+  ([newUrl, mixFlag]) => {
+    const urlStr = String(newUrl || '').trim(); // always a string
+    let valid = false;
+
+    if (urlStr.includes('yout')) {
+      valid = true;
+      const normalized = normalizeYouTubeUrl(urlStr);
+      console.log(normalized)
+      if (normalized !== urlStr) {
+        url.value = normalized;
+      }
+    }
+
+    if (mixFlag) {
+      valid = true;
+    }
+
+    isValidUrl.value = valid;
+  },
+  { immediate: true }
+);
+
 
 const showFormat = computed(() => {
   return formats.find(f => f.key === itag.value)
     || formats.find(f => f.key === '18')
 })
 
-const isValidUrl = computed(() => {
-  let value = '';
 
-  if (isMix.value) {
-    value = (playlistUrl.value || '').trim();
-  } else {
-    value = (url.value || '').trim().split('?list')[0]; 
-  }
-
-  return value !== '' && value.includes('yout');
-});
 
 async function handleDownload() {
   if (!isValidUrl.value || isLoading.value) return message.error("Invalid url for selected section!")
-  if(!isMix){
-        ur.value = (url.value || '').trim().split('?list')[0];
+  if (!isMix) {
+    ur.value = (url.value || '').trim().split('?list')[0];
   }
 
   isLoading.value = true

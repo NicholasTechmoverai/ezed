@@ -1,5 +1,5 @@
 
-export const normalizeYouTubeUrl = async (input) =>{
+export const normalizeYouTubeUrl =  (input) =>{
     if (!input) return;
     const regex = /(?:youtu\.be\/|youtube\.com\/(?:embed\/|watch\?v=|v\/|shorts\/)?|src="(?:https:\/\/www\.youtube\.com\/embed\/))([\w-]{11})/;
 

@@ -33,13 +33,15 @@ audio_formats = [
     "233"   # Opus ~60kbps webm
 ]
 
+
 video_formats = {
-    480: ["244", "606"],             # 480p WebM
-    720: ["247", "609"],             # 720p WebM
-    1080: ["248", "614", "616"],     # 1080p WebM
-    1440: ["271"],                   # 1440p WebM
-    2160: ["313"]                    # 4K WebM
+    2160: ["313"],                      # 4K
+    1440: ["271", "272"],               # 1440p
+    1080: ["248", "614", "616", "137"], # 1080p
+    720: ["247", "609", "136"],         # 720p
+    480: ["244", "606", "135"],         # 480p
 }
+
 
 
 class UnsupportedPlatformError(Exception):
@@ -114,8 +116,9 @@ class StreamDownloader:
     
  
 
+
     async def _handle_youtube(self, url: str, itag: str, start_byte: int, timeout: int = 30, failed_itags=None):
-        """YouTube streaming handler with retry support."""
+        """YouTube streaming handler with retry + resolution fallback."""
         if failed_itags is None:
             failed_itags = []
 
@@ -126,7 +129,8 @@ class StreamDownloader:
                 'quiet': True,
                 'extract_flat': False,
             }
-            # Remove playlist parts
+
+            # Remove playlist identifiers for cleaner URL
             url = url.split('?list')[0].split('&list')[0]
 
             loop = asyncio.get_event_loop()
@@ -150,7 +154,7 @@ class StreamDownloader:
                 logger.error("YouTube streaming failed for itag %s: %s", itag, str(e))
                 failed_itags.append(itag)
 
-                # Retry with next available format
+                # AUDIO FALLBACK
                 if itag in audio_formats:
                     for trial_itag in audio_formats:
                         if trial_itag not in failed_itags:
@@ -159,171 +163,46 @@ class StreamDownloader:
                                 yield chunk
                             return
 
+                # VIDEO FALLBACK WITH RESOLUTION STEP-DOWN
                 else:
-                    for resolution, formats in video_formats.items():
+                    # Find current resolution
+                    current_res = None
+                    for res, formats in video_formats.items():
                         if itag in formats:
-                            for trial_itag in formats:
-                                if trial_itag not in failed_itags:
-                                    logger.info("Retrying with video itag %s", trial_itag)
+                            current_res = res
+                            break
+
+                    if current_res is not None:
+                        # Create list of resolutions from current downwards
+                        resolutions_to_try = sorted(
+                            [r for r in video_formats.keys() if r <= current_res],
+                            reverse=True
+                        )
+
+                        for res in resolutions_to_try:
+                            # If we're stepping to a lower resolution, skip remaining formats of previous one
+                            if res < current_res:
+                                logger.info("Stepping down to %sp fallback", res)
+
+                            for trial_itag in video_formats[res]:
+                                if trial_itag in failed_itags:
+                                    continue
+
+                                logger.info("Retrying with %sp (itag %s)", res, trial_itag)
+                                try:
                                     async for chunk in self._handle_youtube(url, trial_itag, start_byte, timeout, failed_itags):
                                         yield chunk
-                                    return
+                                    return  # Success
+                                except Exception as retry_err:
+                                    logger.error("Failed with itag %s (%sp): %s", trial_itag, res, retry_err)
+                                    failed_itags.append(trial_itag)
 
                 logger.error("All fallback formats failed for %s", url)
+
             else:
-                logger.error("Streaming youtube failed %s", str(e))
-                raise 
-                    
+                logger.error("Streaming YouTube failed: %s", str(e))
 
-    async def _get_youtube_stream_urls(self, url: str, video_itag: str, audio_itag: str) -> tuple[str, str]:
-        """Get both video and audio stream URLs with validation"""
-        ydl_opts = {
-            'noplaylist': True,
-            'quiet': True,
-            'extract_flat': False,
-        }
-        
-        try:
-            loop = asyncio.get_event_loop()
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                info = await loop.run_in_executor(None, lambda: ydl.extract_info(url, download=False))
-                
-                # Validate formats exist
-                video_fmt = next(
-                    (fmt for fmt in info.get('formats', [])
-                    if str(fmt.get('format_id')) == str(video_itag) and fmt.get('vcodec') != 'none'),
-                    None
-                )
-                
-                audio_fmt = next(
-                    (fmt for fmt in info.get('formats', [])
-                    if str(fmt.get('format_id')) == str(audio_itag) and fmt.get('acodec') != 'none'),
-                    None
-                )
-                
-                if not video_fmt or not audio_fmt:
-                    available_formats = [f['format_id'] for f in info.get('formats', [])]
-                    raise ValueError(
-                        f"Requested formats not found (video:{video_itag}, audio:{audio_itag}). "
-                        f"Available formats: {available_formats}"
-                    )
-                
-                return video_fmt['url'], audio_fmt['url']
-                
-        except Exception as e:
-            raise RuntimeError(f"Failed to get stream URLs: {str(e)}") from e
-
-
-    async def _stream_merged_youtube(self, video_url: str, audio_url: str, start_byte: int) -> AsyncGenerator[bytes, None]:
-        """Stream merged video+audio using FFmpeg; fallback to threaded subprocess if needed."""
-        proc = None
-
-        ffmpeg_cmd = [
-            'ffmpeg',
-            '-i', video_url,
-            '-i', audio_url,
-            '-c:v', 'copy',
-            '-c:a', 'aac',
-            '-f', 'matroska',
-            '-movflags', 'frag_keyframe+empty_moov',
-            '-'
-        ]
-
-        # First try the async subprocess API
-        try:
-            proc = await asyncio.create_subprocess_exec(
-                *ffmpeg_cmd,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
-            )
-
-            # If start_byte requested, skip that many bytes (careful: may block)
-            if start_byte > 0:
-                await proc.stdout.readexactly(start_byte)
-
-            while True:
-                chunk = await proc.stdout.read(4096)
-                if not chunk:
-                    break
-                yield chunk
-
-            # wait for process to finish
-            await proc.wait()
-            return
-
-        except NotImplementedError:
-            # Async subprocess not supported in this event loop — fall back
-            # to running subprocess in a thread so we can still yield asynchronously.
-            loop = asyncio.get_running_loop()
-
-            def run_proc():
-                return subprocess.Popen(ffmpeg_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-            try:
-                proc = await loop.run_in_executor(None, run_proc)
-
-                # If start_byte requested, read/skip from proc.stdout synchronously
-                if start_byte > 0:
-                    to_skip = start_byte
-                    while to_skip > 0:
-                        chunk = proc.stdout.read(min(4096, to_skip))
-                        if not chunk:
-                            break
-                        to_skip -= len(chunk)
-
-                # Read from subprocess stdout in executor to avoid blocking the event loop
-                while True:
-                    chunk = await loop.run_in_executor(None, proc.stdout.read, 4096)
-                    if not chunk:
-                        break
-                    yield chunk
-
-                # Ensure we reap the process
-                await loop.run_in_executor(None, proc.wait)
-                return
-
-            except Exception as e:
-                # Try to terminate and re-raise
-                try:
-                    if proc and proc.poll() is None:
-                        proc.terminate()
-                except Exception:
-                    pass
-                raise RuntimeError(f"FFmpeg processing failed (sync fallback): {e}") from e
-
-        except asyncio.CancelledError:
-            if proc and getattr(proc, "returncode", None) is None:
-                try:
-                    proc.terminate()
-                    await proc.wait()
-                except Exception:
-                    pass
-            raise
-
-        except Exception as e:
-            # Any other exception — ensure proc termination
-            try:
-                if proc and getattr(proc, "returncode", None) is None:
-                    proc.terminate()
-                    await proc.wait()
-            except Exception:
-                pass
-            raise RuntimeError(f"FFmpeg processing failed: {e}") from e
-
-        finally:
-            try:
-                if proc and getattr(proc, "returncode", None) is None:
-                    # proc might be asyncio subprocess or a Popen object
-                    if isinstance(proc, asyncio.subprocess.Process):
-                        proc.terminate()
-                        await proc.wait()
-                    else:
-                        proc.terminate()
-                        # For Popen, ensure we wait in executor
-                        loop = asyncio.get_running_loop()
-                        await loop.run_in_executor(None, proc.wait)
-            except Exception:
-                pass
+                        
 
 
     async def _handle_instagram(self, url: str, itag: str, start_byte: int):
