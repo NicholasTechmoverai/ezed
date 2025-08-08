@@ -73,130 +73,91 @@ export const useDownloadStore = defineStore('downloadStore', {
      */
     async update_download_progress(prg = {}) {
       if (!prg?.id) {
-        console.warn('Invalid progress update - missing ID', prg);
+        console.warn('Invalid progress update', prg);
         return;
       }
 
       const isAudio = !!prg.is_audio;
+      const prefix = isAudio ? 'a_' : '';
+      const target = this.onGoingDownloads[prg.id] ||= { id: prg.id };
 
-      // Initialize entry if not present
-      if (!this.onGoingDownloads[prg.id]) {
-        this.onGoingDownloads[prg.id] = { id: prg.id };
-      }
-
-      const target = this.onGoingDownloads[prg.id];
-
-      // Fields to update
-      const baseFields = [
-        'filename', 'progress', 'status', 'eta',
+      // Update progress fields
+      const fields = [
+        'filename', 'progress', 'status', 'eta', 
         'downloadSpeedMbps', 'thumbnail', 'filesize',
         'downloadedSize', 'url', 'merge_progress'
       ];
-
-      // Prefix for audio fields
-      const prefix = isAudio ? 'a_' : '';
-
-      // Update fields with optional prefix
-      baseFields.forEach(key => {
+      
+      fields.forEach(key => {
         if (prg[key] !== undefined) {
           target[`${prefix}${key}`] = prg[key];
         }
       });
 
-      // Store is_audio flag separately to differentiate streams
-      target[`hasAudio`] = isAudio;
+      target.hasAudio = isAudio;
 
-      // Determine if complete
-      const downloadedSize = prg.downloadedSize;
-      const contentLength = prg.contentLength;
-      const isComplete = typeof downloadedSize === 'number' &&
-        typeof contentLength === 'number' &&
-        downloadedSize === contentLength;
-
-      const persistentStatus = isComplete
-        ? 'completed'
-        : (prg.status ?? target[`${prefix}status`] ?? 'interrupted');
-
+      // Persist state to IndexedDB
       try {
-        await saveFile(
-          prg.id,
-          {
-            url: prg.url ?? target[`${prefix}url`],
-            filename: prg.filename ?? target[`${prefix}filename`],
-            status: persistentStatus,
-            thumbnail: prg.thumbnail ?? target[`${prefix}thumbnail`],
-            contentLength: prg.contentLength ?? target[`${prefix}filesize`],
-            downloadedSize: prg.downloadedSize ?? target[`${prefix}downloadedSize`],
-            stopTime: persistentStatus === 'completed' ? Date.now() : null,
-            hasAudio: isAudio || undefined
-          }
-        );
+        await saveFile(prg.id, {
+          url: prg.url ?? target[`${prefix}url`],
+          filename: prg.filename ?? target[`${prefix}filename`],
+          status: prg.status ?? 'interrupted',
+          thumbnail: prg.thumbnail ?? target[`${prefix}thumbnail`],
+          contentLength: prg.contentLength ?? target[`${prefix}filesize`],
+          downloadedSize: prg.downloadedSize ?? target[`${prefix}downloadedSize`],
+          stopTime: prg.status === 'completed' ? Date.now() : null,
+          hasAudio: isAudio || undefined
+        });
       } catch (err) {
-        console.error('Failed to persist download state:', err);
+        console.error('Persist failed:', err);
       }
     },
 
     /**
-     * Splits combined itag into video and audio components if present
-     * @param {string} itag - YouTube format itag (may contain '+')
-     * @returns {array|null} Array of [videoTag, audioTag] or null if not combined
+     * Splits combined itag into video/audio components
+     * @param {string} itag - YouTube format tag (e.g., "137+140")
+     * @returns {[string, string]|null} Video/audio tags or null
      */
-    async split_combined_itag(itag) {
-      if (!itag?.includes('+')) return [null, null];
-      return itag.split("+");
+    split_combined_itag(itag) {
+      return itag?.includes('+') ? itag.split("+") : [null, null];
     },
 
     /**
-     * Initiates a YouTube download, handling both single and combined (video+audio) formats
-     * @param {string} endpoint - API endpoint for download
-     * @param {string} id - YouTube video ID
-     * @param {string} url - YouTube URL
-     * @param {string} itag - YouTube format itag
+     * Initiates YouTube download handling combined formats
+     * @param {string} endpoint - API endpoint
+     * @param {string} id - Video ID
+     * @param {string} url - Source URL
+     * @param {string} itag - Format specification
      * @param {string} ext - File extension
-     * @param {number} startByte - Byte offset for resuming
-     * @param {string|null} format - File format
+     * @param {number} startByte - Resume position
+     * @param {string} format - Output format
      */
-    async download_file(endpoint, id, url, itag = null, ext = null, startByte = 0, format = null) {
-      if (!url) {
-        console.error("Download failed: No URL provided");
-        return;
-      }
+    async download_file(endpoint, id, url, itag, ext, startByte = 0, format) {
+      if (!url) return console.error("Missing URL");
 
-      // Initialize download tracking
-      if (!this.onGoingDownloads[id]) {
-        this.onGoingDownloads[id] = {
-          status: "starting",
-          progress: 0,
-          timestamp: Date.now(),
-          name: `${id}`,
-          itag: itag
+      this.onGoingDownloads[id] ||= {
+        status: "starting",
+        progress: 0,
+        timestamp: Date.now()
+      };
+
+      this.stateStore.addTask({ id, name: `${id}`, url: `/h/inst/${id}` });
+
+      // Handle combined formats (video+audio)
+      const [videoTag, audioTag] = await this.split_combined_itag(itag);
+      if (videoTag && audioTag) {
+        this.pendingMerges[id] = {
+          video: null,
+          audio: null,
+          filename: null,
+          extension: ext || 'mp4'
         };
-      }
 
-      this.stateStore.addTask({ name: `${id}`, id: id, itag: itag, url: `/h/inst/${id}` });
-
-      // Handle combined video+audio itag (e.g., "137+140")
-      if (itag) {
-        const [videoTag, audioTag] = await this.split_combined_itag(itag);
-
-        if (videoTag && audioTag) {
-          // Track that we're expecting two parts for this download
-          this.pendingMerges[id] = {
-            video: null,
-            audio: null,
-            filename: null,
-            extension: ext || 'mp4'
-          };
-
-          // In download_file():
-          if (videoTag && audioTag) {
-            await Promise.all([
-              this.handle_download(endpoint, id, url, videoTag, ext, startByte, format, false),
-              this.handle_download(endpoint, id, url, audioTag, ext, startByte, format, true)
-            ]);
-            return;
-          }
-        }
+        await Promise.all([
+          this.handle_download(endpoint, id, url, videoTag, ext, startByte, format, false),
+          this.handle_download(endpoint, id, url, audioTag, ext, startByte, format, true)
+        ]);
+        return;
       }
 
       // Single format download
@@ -204,39 +165,23 @@ export const useDownloadStore = defineStore('downloadStore', {
     },
 
     /**
-     * Handles the actual download process for a single format
-     * @param {string} endpoint - API endpoint
-     * @param {string} id - Video ID
-     * @param {string} url - Video URL
-     * @param {string} itag - Format itag
-     * @param {string} ext - File extension
-     * @param {number} startByte - Resume position
-     * @param {string} format - Output format
-     * @param {boolean} isAudio - Whether this is an audio stream
+     * Core download executor with progress tracking
+     * @param {boolean} isAudio - Audio stream flag
      */
     async handle_download(endpoint, id, url, itag, ext, startByte, format, isAudio) {
-      let downloadId;
       const downloadType = isAudio ? 'audio' : 'video';
+      let downloadId;
 
       try {
         const response = await fetch(`${B_URL}/${endpoint}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            itag,
-            id,
-            url,
-            start_byte: startByte,
-            format,
-            ext
-          })
+          body: JSON.stringify({ itag, id, url, start_byte: startByte, format, ext })
         });
 
-        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-        this.onGoingDownloads[id].status = "downloading";
-
-        // Parse response headers
+        // Process response headers
         const headers = response.headers;
         const contentDisposition = headers.get("Content-Disposition");
         const filename = contentDisposition?.split("filename=")[1]?.replace(/"/g, "") || id;
@@ -244,42 +189,37 @@ export const useDownloadStore = defineStore('downloadStore', {
         downloadId = headers.get("X-Download-URL") || id;
 
         // Initialize download tracking
-        if (!this.onGoingDownloads[id]) {
-          this.onGoingDownloads[id] = {};
-        }
-
-        // For combined downloads, store filename in pending merge
+        this.onGoingDownloads[id].status = "downloading";
         if (this.pendingMerges[id]) {
           this.pendingMerges[id].filename = filename;
           this.pendingMerges[id][downloadType] = { status: 'downloading' };
         }
 
-        // Download progress tracking
-        let contentLength = this.activeFilesize * 1024 * 1024; // Convert MB to bytes
+        // Stream processing setup
+        let contentLength = this.activeFilesize * 1024 * 1024;
         let downloadedSize = 0;
         const startTime = performance.now();
+        const chunks = [];
+        const reader = response.body.getReader();
+
+        // Progress tracking optimizations
         let lastUpdateTime = startTime;
         let lastDownloadedSize = 0;
         const speedSamples = [];
         const MAX_SAMPLES = 5;
 
-        const reader = response.body.getReader();
-        const chunks = [];
-
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
 
-          // Handle first chunk which may contain content length
-          if (downloadedSize === 0 && value) {
-            const str = new TextDecoder().decode(value);
-            const match = str.match(/^\[CONTENT-LENGTH:(\d+)\]/);
-
-            if (match) {
-              contentLength = parseInt(match[1]);
-              const stripped = value.slice(match[0].length);
-              chunks.push(stripped);
-              downloadedSize += stripped.length;
+          // Handle initial content-length metadata
+          if (downloadedSize === 0) {
+            const headerStr = new TextDecoder().decode(value);
+            const lengthMatch = headerStr.match(/^\[CONTENT-LENGTH:(\d+)\]/);
+            if (lengthMatch) {
+              contentLength = parseInt(lengthMatch[1]);
+              chunks.push(value.slice(lengthMatch[0].length));
+              downloadedSize = chunks[0].length;
               continue;
             }
           }
@@ -287,25 +227,21 @@ export const useDownloadStore = defineStore('downloadStore', {
           chunks.push(value);
           downloadedSize += value.length;
 
-          // Update progress periodically
-          const currentTime = performance.now();
-          const timeDiff = (currentTime - lastUpdateTime) / 1000;
-
-          if (timeDiff > 0.5) { // Throttle updates to twice per second
-            const sizeDiff = downloadedSize - lastDownloadedSize;
-            const instantSpeed = (sizeDiff / timeDiff) / (1024 * 1024); // MB/s
-
-            // Calculate moving average speed
+          // Throttled progress updates (max 2/sec)
+          const now = performance.now();
+          if ((now - lastUpdateTime) > 500) {
+            const elapsed = (now - lastUpdateTime) / 1000;
+            const chunkSize = downloadedSize - lastDownloadedSize;
+            const instantSpeed = (chunkSize / elapsed) / (1024 * 1024); // MB/s
+            
+            // Calculate smoothed speed
             speedSamples.push(instantSpeed);
             if (speedSamples.length > MAX_SAMPLES) speedSamples.shift();
-            const avgSpeed = speedSamples.reduce((sum, s) => sum + s, 0) / speedSamples.length;
-
-            // Calculate progress metrics
+            const avgSpeed = speedSamples.reduce((a, b) => a + b, 0) / speedSamples.length;
+            
+            // Update progress metrics
             const progress = Math.min((downloadedSize / contentLength) * 100, 100);
-            const remainingBytes = contentLength - downloadedSize;
-            const remainingSeconds = remainingBytes / (avgSpeed * 1024 * 1024);
-            const eta = this.formatETA(remainingSeconds);
-            const formattedSpeed = this.formatSpeed(avgSpeed);
+            const remainingSec = (contentLength - downloadedSize) / (avgSpeed * 1024 * 1024);
 
             this.update_download_progress({
               id,
@@ -313,87 +249,61 @@ export const useDownloadStore = defineStore('downloadStore', {
               filename,
               status: 'downloading',
               progress,
-              downloadSpeedMbps: formattedSpeed,
-              eta,
-              thumbnail: "",
+              downloadSpeedMbps: this.formatSpeed(avgSpeed),
+              eta: this.formatETA(remainingSec),
               contentLength,
               filesize: contentLength,
               downloadedSize,
               is_audio: isAudio
             });
 
-            lastUpdateTime = currentTime;
+            lastUpdateTime = now;
             lastDownloadedSize = downloadedSize;
           }
         }
 
-        // Download complete - assemble blob
+        // Finalize download
         const blob = new Blob(chunks);
-
-        // For combined downloads, store blob and check if ready to merge
         if (this.pendingMerges[id]) {
-          this.pendingMerges[id][downloadType] = {
-            blob,
-            status: 'completed'
-          };
-
-          await this.checkAndMergeDownloads(id, isAudio = false);
+          this.pendingMerges[id][downloadType] = { blob, status: 'completed' };
+          await this.checkAndMergeDownloads(id);
         } else {
-          // Single download - save immediately
           await this.finalizeDownload(id, blob, filename, extension, isAudio);
         }
 
       } catch (error) {
         console.error("Download failed:", error);
-        if (downloadId && this.onGoingDownloads[downloadId]) {
-          this.onGoingDownloads[downloadId].status = "failed";
-        }
-
-        // Clean up pending merge if one part fails
-        if (this.pendingMerges[id]) {
-          delete this.pendingMerges[id];
-        }
+        this.onGoingDownloads[id].status = "failed";
+        if (this.pendingMerges[id]) delete this.pendingMerges[id];
       }
     },
 
-    /**
-     * Checks if both video and audio parts are downloaded and merges them
-     * @param {string} id - Video ID
-     */
-    async checkAndMergeDownloads(id, isAudio) {
+    /** Merges downloaded video/audio blobs */
+    async checkAndMergeDownloads(id) {
       const pending = this.pendingMerges[id];
       if (!pending || !pending.video?.blob || !pending.audio?.blob) return;
 
       try {
         this.onGoingDownloads[id].status = "merging";
-
-        // Use FFmpeg to merge video and audio
+        
+        // Use WebWorker for non-blocking merging
         const mergedBlob = await this.useFfmpeg.mergeVideoAudio(
           pending.video.blob,
           pending.audio.blob,
           id
         );
 
-        // Finalize the merged download
-        await this.finalizeDownload(id, mergedBlob, pending.filename, pending.extension, isAudio);
-
-        // Clean up
+        await this.finalizeDownload(id, mergedBlob, pending.filename, pending.extension, false);
         delete this.pendingMerges[id];
       } catch (error) {
-        console.error("Failed to merge downloads:", error);
+        console.error("Merge failed:", error);
         this.onGoingDownloads[id].status = "merge_failed";
       }
     },
 
-    /**
-     * Finalizes a completed download
-     * @param {string} id - Download ID
-     * @param {Blob} blob - Downloaded content
-     * @param {string} filename - Output filename
-     * @param {string} extension - File extension
-     * @param {string} id - File id to clear blob after saving
-     */
-    async finalizeDownload(id, blob, filename, extension, isAudio = false) {
+    /** Finalizes download and triggers file save */
+    async finalizeDownload(id, blob, filename, extension, isAudio) {
+      // Update state and persist
       this.update_download_progress({
         id,
         status: 'completed',
@@ -403,26 +313,20 @@ export const useDownloadStore = defineStore('downloadStore', {
         downloadedSize: blob.size
       });
 
-      // Save to IndexedDB
       try {
-        await saveFile(
-          id,
-          {
-            url: this.onGoingDownloads[id]?.url || '',
-            filename: filename,
-            [isAudio ? 'audioBlob' : 'videoBlob']: blob,
-            status: 'completed',
-            thumbnail: this.onGoingDownloads[id]?.thumbnail || '',
-            downloadedSize: blob.size
-          }
-        );
+        await saveFile(id, {
+          url: this.onGoingDownloads[id]?.url || '',
+          filename,
+          [isAudio ? 'audioBlob' : 'videoBlob']: blob,
+          status: 'completed',
+          thumbnail: this.onGoingDownloads[id]?.thumbnail || '',
+          downloadedSize: blob.size
+        });
       } catch (err) {
-        console.error('Failed to persist completed download:', err);
+        console.error('Persist failed:', err);
       }
 
-
-
-      // Offer download to user
+      // Trigger file download
       this.saveToFileSystem(blob, filename, extension, id);
     },
 
