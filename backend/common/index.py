@@ -15,6 +15,7 @@ import urllib.parse
 import subprocess
 from typing import AsyncGenerator, Optional, Tuple, List, Dict, Union
 import shutil
+from uuid import uuid4
 
 def check_ffmpeg_available():
     if not shutil.which('ffmpeg'):
