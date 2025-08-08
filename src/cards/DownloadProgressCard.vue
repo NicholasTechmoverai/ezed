@@ -319,7 +319,7 @@ const loading = ref(true)
 // Computed
 const fileThumbnail = computed(() => localFileData.value?.thumbnail || defaultThumbnail)
 const fileName = computed(() => {
-  const name = localFileData.value?.filename || localFileData.value?.title || 'Untitled file'
+  const name = localFileData.value?.name || localFileData.value?.filename || localFileData.value?.title || 'Untitled file'
   return name.split('.').slice(0, -1).join('.') || name
 })
 const fileExtension = computed(() => {

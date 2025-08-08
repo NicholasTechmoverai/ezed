@@ -68,11 +68,12 @@
 import yt_dlp
 
 def list_formats_with_builtin(url):
-    ydl_opts = {
-        "listformats": True  # This makes yt_dlp print formats like the CLI
-    }
+    ydl_opts = {'quiet': True, 'no_warnings': True}
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        ydl.download([url])
+        info = ydl.extract_info(url, download=False)
+        filename = info.get('filename') or f"{info.get('title')}.{info.get('ext')}"
+        print(filename)
+
 
 if __name__ == "__main__":
-    list_formats_with_builtin("https://youtu.be/j68223GPWCM")
+    list_formats_with_builtin("https://www.youtube.com/watch?v=jKIEUdAMtrQ")

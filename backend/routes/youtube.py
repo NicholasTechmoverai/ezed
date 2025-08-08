@@ -16,7 +16,7 @@ from models import User as Users
 from typing import Optional
 from utils.logger import setup_logger
 from utils.auth import get_current_user
-from common.index import StreamDownloader,StreamMeta
+from common.index import StreamDownloader, StreamMeta
 
 logger = setup_logger("TIKTOK ROUTES")
 youtube_router = APIRouter()
@@ -81,10 +81,11 @@ async def download_instagram(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-class ListRequest (BaseModel):
+class ListRequest(BaseModel):
     listUrl: str = None
-    
-@youtube_router.post('/{username}/list')
+
+
+@youtube_router.post("/{username}/list")
 @limiter.limit("50/day")
 async def get_youtube_songs(request: Request, data: ListRequest):
     if not data.listUrl:
@@ -97,12 +98,12 @@ async def get_youtube_songs(request: Request, data: ListRequest):
 
         async with StreamMeta() as stream_meta:
             # Example 1: Get playlist songs
-            playlist_name, songs = await stream_meta.get_playlist_songs(data.listUrl)        
-            
+            playlist_name, songs = await stream_meta.get_playlist_songs(data.listUrl)
+
         if not songs:
             raise HTTPException(
                 status_code=404,
-                detail="No songs found in playlist (might be private, empty, or unviewable)"
+                detail="No songs found in playlist (might be private, empty, or unviewable)",
             )
 
         return {
@@ -117,7 +118,28 @@ async def get_youtube_songs(request: Request, data: ListRequest):
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=500,
-            detail=f"Failed to process playlist: {str(e)}"
+            status_code=500, detail=f"Failed to process playlist: {str(e)}"
         )
-    
+
+
+class DownloadMetatRequest(BaseModel):
+    url: str
+    itag: Optional[str]=None
+
+
+@youtube_router.post("/download-meta")
+@limiter.limit("5/min")
+async def get_download_meta(request: Request, data: DownloadMetatRequest):
+    if not data.url:
+        raise HTTPException(status_code=400, detail="URL is required")
+
+    try:
+        async with StreamMeta() as stream_meta:
+            r = await stream_meta.get_download_info(data.url, data.itag)
+
+        return r
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to process download meta: {str(e)}"
+        )

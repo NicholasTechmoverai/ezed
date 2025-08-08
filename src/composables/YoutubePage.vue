@@ -198,8 +198,11 @@ async function handleDownload() {
       );
 
     } else {
+      downloadStore.get_download_meta(id,url.value, itag.value)
+
       await saveFile(id, {
         url: url.value,
+        itag: itag.value,
         startTime: Date.now(),
         itag: itag.value,
       });

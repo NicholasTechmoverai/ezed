@@ -167,11 +167,13 @@ export const useDownloadStore = defineStore('downloadStore', {
         this.onGoingDownloads[id] = {
           status: "starting",
           progress: 0,
-          timestamp: Date.now()
+          timestamp: Date.now(),
+          name: `${id}`,
+          itag: itag
         };
       }
 
-      this.stateStore.addTask({ name: `${id}`, id: id, url: `/h/inst/${id}` });
+      this.stateStore.addTask({ name: `${id}`, id: id, itag: itag, url: `/h/inst/${id}` });
 
       // Handle combined video+audio itag (e.g., "137+140")
       if (itag) {
@@ -305,7 +307,7 @@ export const useDownloadStore = defineStore('downloadStore', {
             const eta = this.formatETA(remainingSeconds);
             const formattedSpeed = this.formatSpeed(avgSpeed);
 
-            await this.update_download_progress({
+            this.update_download_progress({
               id,
               url,
               filename,
@@ -392,7 +394,7 @@ export const useDownloadStore = defineStore('downloadStore', {
      * @param {string} id - File id to clear blob after saving
      */
     async finalizeDownload(id, blob, filename, extension, isAudio = false) {
-      await this.update_download_progress({
+      this.update_download_progress({
         id,
         status: 'completed',
         progress: 100,
@@ -442,7 +444,13 @@ export const useDownloadStore = defineStore('downloadStore', {
      * @param {string} extension - File extension
      */
     saveToFileSystem(blobOrUrl, filename = 'download', extension = 'mp4', id = null) {
-      const fullName = `${filename}${extension.startsWith('.') ? extension : '.' + extension}`;
+      let fullName = `${filename}${extension.startsWith('.') ? extension : '.' + extension}`;
+      if (this.onGoingDownloads[id].downloadName) {
+        fullName = this.onGoingDownloads[id].downloadName
+      }
+
+
+      console.log(this.onGoingDownloads[id])
 
       if (blobOrUrl instanceof Blob) {
         const url = URL.createObjectURL(blobOrUrl);
@@ -494,7 +502,7 @@ export const useDownloadStore = defineStore('downloadStore', {
           isLoading: false
 
         };
-        this.stateStore.addTask({ name: `list:${data.playlist_name}` || "Untitled", id: id, listUrl: listUrl, url: `/h/yt/list/${id}` });
+        this.stateStore.addTask({ name: `list:${data.playlist_name}` || "", id: id, listUrl: listUrl, url: `/h/yt/list/${id}` });
 
       } catch (error) {
         console.error(`Failed to fetch playlist [${id}]:`, error);
@@ -505,7 +513,29 @@ export const useDownloadStore = defineStore('downloadStore', {
           isLoading: false
         };
       }
+    },
+    async get_download_meta(id, url, itag) {
+      try {
+        const startTime = performance.now();
+
+        const { data } = await axios.post(`${B_URL}/yt/download-meta`, { url, itag });
+        this.update_download_progress({ id, filename: data.filename ,extension:data.extension})
+        this.onGoingDownloads[id].name = data.title
+        this.onGoingDownloads[id].downloadName = data.filename
+        this.stateStore.addTask({ id: id, name: data.title })
+        this.update_download_progress({ id:id, filename: data.filename ,extension:data.extension})
+
+        const endTime = performance.now();
+        console.log(`Loaded file meta:`, data, `in ${(endTime - startTime).toFixed(2)} ms`);
+
+        // return data; // return the metadata if needed
+
+      } catch (error) {
+        console.error(`Failed to fetch metadata for URL [${url}]:`, error);
+        throw error; // rethrow if you want caller to handle
+      }
     }
+
 
 
   }
