@@ -1,6 +1,6 @@
 from tortoise import Tortoise
 import os
-WEB_SERVER = 'https://the-food-lovers.netlify.app'
+WEB_SERVER = 'https://e-zed.netlify.app'
 BASE_SERVER = 'https://teacher-tomatoes-travelers-you.trycloudflare.com'
 # BASE_SERVER = 'http://localhost:8000'
 
