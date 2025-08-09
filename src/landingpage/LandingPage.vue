@@ -1,14 +1,10 @@
 <template>
     <div :style="{
         '--theme': SITEMETA.theme_color,
-        '--theme-rgb': SITEMETA.theme_color_rgb
+        '--theme-rgb': SITEMETA.theme_color_rgb,
+        '--theme-light': SITEMETA.theme_light
     }" class="min-h-screen transition-colors duration-500
-         bg-gradient-to-b
-         from-white 
-         via-[rgba(var(--theme-rgb),0.08)] 
-         to-[var(--theme)]
-         dark:bg-[linear-gradient(to_bottom,_black,_rgb(55,65,81)_40%,_rgba(var(--theme-rgb),0.5)_70%,_var(--theme))]
-         px-2 py-1  backdrop-blur-sm">
+          backdrop-blur-sm">
 
 
         <div id="pwa-install-prompt" class="hidden fixed bottom-0 w-full p-4 bg-[var(--theme)] text-white text-center">
@@ -21,7 +17,11 @@
             <GlobalPrerenceTabs />
         </div>
 
-        <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        <main class=" mx-auto px-4 sm:px-6 lg:px-8 py-20   bg-gradient-to-b  backdrop-blur-sm
+         from-white 
+         via-[rgba(var(--theme-rgb),0.08)] 
+         to-[var(--theme)]
+         dark:bg-[linear-gradient(to_bottom,_black,_rgb(55,65,81)_40%,_rgba(var(--theme-rgb),0.5)_70%,_var(--theme))]">
             <div class="flex flex-col items-center text-center justify-center gap-8 animate-fade-in">
                 <div class="flex flex-col sm:flex-row justify-center items-center gap-6 sm:gap-8 animate-slide-up">
                     <img :src="SITEMETA.logo" :alt="SITEMETA.name || 'Site Logo'"
@@ -85,14 +85,27 @@
                 </div>
             </div>
         </main>
+        <div class="border-t-[8px] border-[var(--theme-light)] p-3 md:p-10 px-3 md:px-20 
+        bg-gradient-to-b
+        from-[rgba(var(--theme-rgb),0.5)]
+         to-white
+         dark:to-black
+        ">
+            <div class="mt-15 flex flex-col gap-30">
+                <ResourcesPage />
+                <SitesPage />
+            </div>
+
+        </div>
     </div>
 </template>
 
 <script setup>
 import { SITEMETA } from "../utils";
-import GlobalPrerenceTabs from "./GlobalPrerenceTabs.vue";
 import { LogoWindows, LogoApple, LogoGooglePlaystore } from "@vicons/ionicons5";
-
+import SitesPage from "./SitesPage.vue";
+import GlobalPrerenceTabs from "../pages/GlobalPrerenceTabs.vue";
+import ResourcesPage from "./ResourcesPage.vue";
 const pwaFeatures = [
     { icon: "⚡", title: "Lightning Fast", desc: "Optimized for performance with PWA technology" },
     { icon: "📱", title: "Installable", desc: "Add to home screen for app-like experience" },

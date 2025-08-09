@@ -1,45 +1,69 @@
 <template>
-  <div
-    class="flex flex-row overflow-x-auto p-2 space-x-1 scrollbar scrollbar-thin scrollbar-thumb-gray-500 scrollbar-track-gray-200">
-    <n-tag v-for="task in stateStore.openedTasks" :key="task.id" closable @close="handleClose(task.id)"
-      @click="handleOpen(task.url)" type="success" size="medium">
-      <n-ellipsis style="max-width: 70px" class="max-w-[50px]"> {{ task.name }}</n-ellipsis>
-    </n-tag>
-
-  </div>
-
+  <n-tabs
+    type="card"
+    size="small"
+    animated
+    closable
+    :value="activeTaskId"
+    @update:value="handleOpenById"
+    @close="handleClose"
+    class="overflow-x-auto whitespace-nowrap scrollbar-thin"
+  >
+    <n-tab-pane
+      v-for="task in stateStore.openedTasks"
+      :key="task.id"
+      :name="task.id"
+    >
+      <template #tab>
+        <n-tooltip trigger="hover">
+          <template #trigger>
+            <span class="truncate-tab">{{ task.name }}</span>
+          </template>
+          {{ task.name }}
+        </n-tooltip>
+      </template>
+    </n-tab-pane>
+  </n-tabs>
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { useStateStore } from '../store/stateStore';
-import router from '../router';
+import { ref, watch } from 'vue'
+import { useStateStore } from '../store/stateStore'
+import router from '../router'
 
 const stateStore = useStateStore()
-const handleOpen = (url) => {
-  router.push(url)
-};
+const activeTaskId = ref(stateStore.openedTasks[0]?.id || null)
+
+watch(
+  () => stateStore.openedTasks,
+  (tasks) => {
+    if (!tasks.find(t => t.id === activeTaskId.value)) {
+      activeTaskId.value = tasks[0]?.id || null
+    }
+  },
+  { deep: true }
+)
+
+const handleOpenById = (id) => {
+  const task = stateStore.openedTasks.find(t => t.id === id)
+  if (task) {
+    activeTaskId.value = id
+    router.push(task.url)
+  }
+}
+
 const handleClose = (id) => {
   stateStore.removeTask(id)
-};
+}
 </script>
+
 <style scoped>
-/* ./src/assets/styles/scrollbar.css */
-::-webkit-scrollbar {
-  width: 2px;
-  height: 2px;
-}
-
-::-webkit-scrollbar-track {
-  background: #f1f1f1;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 8px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #555;
+.truncate-tab {
+  display: inline-block;
+  max-width: 100px; /* matches tab-style max-width */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
 }
 </style>
