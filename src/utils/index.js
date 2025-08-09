@@ -10,7 +10,7 @@ export const SITEMETA = {
     theme_color_rgb: '34, 197, 94', // same color but RGB only
     theme_light: '#a7f3d0',
     icons: "/icons/icon-512x512.png",
-    description: "anyting social!! and intresting, make a single share and intall it in your device"
+    description: "Download any  intresting music and videos effortlessly on all social media platforms. One simple share is all it takes to get it installed on your device — fast, easy, and social!"
 }
 
 

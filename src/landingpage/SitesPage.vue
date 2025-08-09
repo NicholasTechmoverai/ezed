@@ -78,13 +78,13 @@
 
 <template>
   <div class="flex flex-col justify-center items-center gap-9">
-    <h4 class="text-2xl md:text-4xl font-bold" :style="{color:SITEMETA.theme_color}">Download videos from this platforms</h4>
+    <h4 class="text-4xl font-extrabold text-gray-900 dark:text-white text-center mb-6 leading-tight animate-fade-delay lobster-font" >Download videos from this platforms</h4>
     <div class="slider" style="--width: 200px;
       --height: 200px;
       --quantity: 9;">
       <div class="list">
 
-        <div v-for="site in sites" :key="site.name" class="item" :style="{ '--position': site.position }">
+        <div v-for="site in sites" :key="site.name" class="item animate-fade-delay" :style="{ '--position': site.position }">
           <div class="card  !rounded-full shadow-md text-white transition-transform transform hover:scale-101 "
             :style="{ background: site.cl }">
             <div class="flex flex-col items-center gap-2 p-4 ">

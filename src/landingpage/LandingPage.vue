@@ -33,7 +33,7 @@
                 </div>
 
                 <h3
-                    class="text-2xl sm:text-3xl text-gray-700 dark:text-gray-300 max-w-3xl leading-relaxed font-inter opacity-0 animate-fade-delay">
+                    class="text-2xl sm:text-3xl text-gray-900 dark:text-white my-10 leading-tight max-w-3xl  lobster-font opacity-0 animate-fade-delay">
                     {{ SITEMETA.description }}
                 </h3>
 
@@ -76,10 +76,10 @@
 
                 <div class="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-5xl">
                     <div v-for="(feature, idx) in pwaFeatures" :key="idx"
-                        class="p-6 rounded-xl bg-white dark:bg-[#313244] shadow-md dark:shadow-none transition-all hover:scale-[1.02] opacity-0"
+                        class="p-6 rounded-xl bg-white/70 dark:bg-[#313244]/70 shadow-md dark:shadow-none transition-all hover:scale-[1.02] opacity-0"
                         :class="`animate-fade-slide-delay-${idx}`">
                         <div class="text-[var(--theme)] text-3xl mb-4">{{ feature.icon }}</div>
-                        <h3 class="text-2xl font-bold mb-2 font-geist">{{ feature.title }}</h3>
+                        <h3 class="text-2xl text-gray-800 dark:text-gray-100 font-bold mb-2 font-geist">{{ feature.title }}</h3>
                         <p class="text-gray-600 dark:text-gray-300 font-inter">{{ feature.desc }}</p>
                     </div>
                 </div>
@@ -94,6 +94,7 @@
             <div class="mt-15 flex flex-col gap-30">
                 <ResourcesPage />
                 <SitesPage />
+                <FooterPage/>
             </div>
 
         </div>
@@ -106,6 +107,7 @@ import { LogoWindows, LogoApple, LogoGooglePlaystore } from "@vicons/ionicons5";
 import SitesPage from "./SitesPage.vue";
 import GlobalPrerenceTabs from "../pages/GlobalPrerenceTabs.vue";
 import ResourcesPage from "./ResourcesPage.vue";
+import FooterPage from "./FooterPage.vue";
 const pwaFeatures = [
     { icon: "⚡", title: "Lightning Fast", desc: "Optimized for performance with PWA technology" },
     { icon: "📱", title: "Installable", desc: "Add to home screen for app-like experience" },
@@ -142,6 +144,11 @@ window.addEventListener("beforeinstallprompt", (e) => {
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
 @import url('https://cdn.jsdelivr.net/npm/@fontsource/geist-sans@latest/index.css');
+@import url('https://fonts.googleapis.com/css2?family=Lobster&display=swap');
+
+.lobster-font {
+  font-family: 'Lobster', cursive;
+}
 
 .font-geist {
     font-family: 'Geist', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
