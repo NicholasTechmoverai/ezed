@@ -3,7 +3,15 @@ export const BASE_URL = "http://127.0.0.1:8000";
 
 export const B_URL = `${BASE_URL}/api`;
 
-
+export const SITEMETA = {
+    name: "e-zed",
+    logo: "/icons/icon-512x512.png",
+    theme_color: '#22c55e',
+    theme_color_rgb: '34, 197, 94', // same color but RGB only
+    theme_light: '#a7f3d0',
+    icons: "/icons/icon-512x512.png",
+    description: "anyting social!! and intresting, make a single share and intall it in your device"
+}
 
 
 export const ENDPOINTS = {
@@ -21,19 +29,19 @@ export const FILE_PROGRESS = {
     ACTIVE: "active",
     DOWNLOADING: "downloading",
     PAUSED: "paused",
-    INTERUPTED:"interupted",
+    INTERUPTED: "interupted",
     ERROR: "error",
-    MERGING:"merging",
+    MERGING: "merging",
     COMPLETED: "completed"
 };
 
 export const audioItags = [
-  "251", // Opus ~160kbps webm
-  "140", // AAC ~128kbps m4a
-  "250", // Opus ~70kbps webm
-  "249", // Opus ~50kbps webm
-  "234", // Opus ~80kbps webm
-  "233"  // Opus ~unknown webm
+    "251", // Opus ~160kbps webm
+    "140", // AAC ~128kbps m4a
+    "250", // Opus ~70kbps webm
+    "249", // Opus ~50kbps webm
+    "234", // Opus ~80kbps webm
+    "233"  // Opus ~unknown webm
 ];
 
 

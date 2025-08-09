@@ -15,7 +15,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'robots.txt'],
       manifest: {
-        name: 'Zed',
+        name: 'e-zed',
         short_name: 'Z',
         start_url: '/',
         display: 'standalone',

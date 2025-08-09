@@ -14,14 +14,15 @@
         </div>
       </div>
       <n-space align="center" size="small">
-        <n-switch v-model:value="isDark" size="small">
+        <GlobalPrerenceTabs/>
+        <!-- <n-switch v-model:value="isDark" size="small">
           <template #checked-icon>
             <n-icon :component="MoonOutline" />
           </template>
           <template #unchecked-icon>
             <n-icon :component="SunnyOutline" />
           </template>
-        </n-switch>
+        </n-switch> -->
 
 
 
@@ -42,7 +43,6 @@
 
 <script setup>
 import { ref, watch, h, computed } from 'vue'
-import { useThemeStore } from '@/store/themeStore'
 import { useUserStore } from '@/store/userStore'
 import { MoonOutline, SunnyOutline } from '@vicons/ionicons5'
 import NoUser from "../assets/NoUser.png"
@@ -67,6 +67,7 @@ import {
 import { useRoute } from 'vue-router'
 import { allSites, openTab } from '../composables'
 import router from '../router'
+import GlobalPrerenceTabs from './GlobalPrerenceTabs.vue'
 
 const route = useRoute()
 
@@ -82,22 +83,8 @@ const activePage = computed(() => {
 watch(() => route.path, (newPath) => {
   // console.log('New value after /h/ is:', activePage.value)
 })
-const themeStore = useThemeStore()
 const userStore = useUserStore()
 
-const isDark = ref(themeStore.theme === 'dark')
-
-watch(
-  () => themeStore.theme,
-  (newTheme) => {
-    isDark.value = newTheme === 'dark'
-  },
-  { immediate: true }
-)
-
-watch(isDark, (val) => {
-  themeStore.setTheme(val ? 'dark' : 'light')
-})
 
 const railStyle = ({ focused, checked }) => ({
   backgroundColor: focused
