@@ -58,10 +58,12 @@ export async function getDB() {
  * - itag: YouTube format identifier (if applicable).
  * - hasAudio: Boolean flag if video includes audio.
  * - thumbnail: Video thumbnail URL.
+ * -duration:
+ * -format
  *
  * 🔁 Download Status:
- * - status: 'pending' | 'downloading' | 'completed' | 'failed' | 'merging' | 'merged' | 'merge_failed'
- * - contentLength: Total file size in bytes.
+ * - status:... 'pending' | 'downloading' | 'completed' | 'failed' | 'merging' | 'merged' | 'merge_failed'
+ * - filesize: Total file size in bytes.
  * - downloadedSize: Number of bytes downloaded so far.
  * - audioLastChunk: Last audio chunk (for resume/debug).
  * - videoLastChunk: Last video chunk (for resume/debug).

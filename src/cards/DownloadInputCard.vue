@@ -49,6 +49,8 @@ import api from '../api'
 import { useDownloadStore } from '../store/downloadStore'
 import { saveFile } from '../db/download'
 import { useMessage } from 'naive-ui'
+import { suggestFilename } from '../utils/others'
+import { audioItags } from '../utils'
 
 const props = defineProps({
   d_type: {
@@ -86,14 +88,19 @@ async function handleDownload() {
   isLoading.value = true
   downloadComplete.value = false
   const username = "Nick"
- 
+
   try {
     error.value = null
     const id = generateUUID()
-   // Initialize the download entry immediately
+    // Initialize the download entry immediately
+    const filename = suggestFilename(url.value);
+    const extension = "mp4";
+
     downloadStore.onGoingDownloads[id] = {
       status: "starting",
-      progress: 0
+      progress: 0,
+      filename: filename,
+      extension: extension
     }
 
 
@@ -104,7 +111,7 @@ async function handleDownload() {
           isLoading.value = false
           downloadComplete.value = true
 
-          stateStore.addTask({ name: `${props.abb_r}:${id}`, id: id, url: `/h/${props.abb_r}/${id}` })
+          stateStore.addTask({ name: `${props.abb_r}:${filename}`, id: id, url: `/h/${props.abb_r}/${id}` })
           unwatch() // Stop watching after navigation
           setTimeout(() => {
             router.push(`/h/${props.abb_r}/${id}`)
@@ -117,7 +124,7 @@ async function handleDownload() {
 
     // Start the download
     await downloadStore.download_file(`${props.abb_r}/${username}/download`, id, url.value)
-    await saveFile(id, {url:url.value,startTime:Date.now()})
+    await saveFile(id, { url: url.value, filename: filename, extension: extension, startTime: Date.now() })
 
   } catch (err) {
     error.value = 'Failed to start download.'

@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen p-4">
     <!-- Skeleton Loading -->
-        <transition name="fade-slide" mode="out-in">
+    <transition name="fade-slide" mode="out-in">
       <n-card v-if="loading" hoverable :bordered="false" class="max-w-xs mx-auto transition-all duration-300"
         :content-style="{ padding: 0 }">
         <n-space vertical>
@@ -49,7 +49,7 @@
             <transition name="fade">
               <div v-if="isLoaderActive || downloadStatus === 'merging'"
                 class="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-                <transition  name="slide-up" mode="out-in">
+                <transition name="slide-up" mode="out-in">
                   <div v-if="downloadStatus === 'merging'" key="merging">
                     <n-progress type="circle" :percentage="mergeProgress" :color="progressColor"
                       :rail-color="progressRailColor">
@@ -256,7 +256,7 @@ import router from '../router'
 
 // Constants
 const STATUS_CONFIG = {
-    processing: {
+  processing: {
     message: 'Processing',
     icon: PlayOutline,
     type: 'info'
@@ -323,8 +323,8 @@ const fileName = computed(() => {
   return name.split('.').slice(0, -1).join('.') || name
 })
 const fileExtension = computed(() => {
-  const ext = localFileData.value?.filename?.split('.').pop() ||
-    localFileData.value?.extension ||
+  const ext = localFileData.value?.extension ||
+    localFileData.value?.filename?.split('.').pop() ||
     'file'
   return ext.toUpperCase()
 })
@@ -385,7 +385,7 @@ const remainingSize = computed(() => {
 })
 
 const mergeProgress = computed(() => localFileData.value?.merge_progress || 0)
-const hasAudio = (() => localFileData.value?.hasAudio || false)
+const hasAudio = computed(() => audioDownloadPercentage.value || localFileData.value?.hasAudio || false)
 
 // Methods
 const fetchFileData = async () => {

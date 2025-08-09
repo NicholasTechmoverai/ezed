@@ -7,6 +7,7 @@ import { useFfmpeg } from '../utils/useFfmpeg.js';
 import axios from 'axios';
 import { audioItags } from '../utils/index.js';
 import { suggestFilename } from '../utils/others.js';
+import { timestamp } from '@vueuse/core';
 
 export const useDownloadStore = defineStore('downloadStore', {
   state: () => ({
@@ -109,7 +110,9 @@ export const useDownloadStore = defineStore('downloadStore', {
           filesize: prg.contentLength ?? target[`${prefix}filesize`],
           downloadedSize: prg.downloadedSize ?? target[`${prefix}downloadedSize`],
           stopTime: prg.status === 'completed' ? Date.now() : null,
-          hasAudio: isAudio || undefined
+          hasAudio: isAudio || undefined,
+          duration: prg.duration || undefined,
+          format: prg.format || undefined
         });
       } catch (err) {
         console.error('Persist failed:', err);
@@ -141,15 +144,16 @@ export const useDownloadStore = defineStore('downloadStore', {
       let extension = ext || (audioItags.includes(itag) ? "mp4a" : "mp4");
 
 
-      this.onGoingDownloads[id] ||= {
+      this.update_download_progress({
+        id,
         status: "starting",
         progress: 0,
         filename,
         extension,
-        timestamp: Date.now()
-      };
+        startTime: Date.now()
+      })
 
-      this.stateStore.addTask({ id, name: `${id}`, url: `/h/inst/${id}` });
+      this.stateStore.addTask({ id, name: `${filename}`, url: `/h/inst/${id}` });
 
       // Handle combined formats (video+audio)
       const [videoTag, audioTag] = await this.split_combined_itag(itag);
@@ -196,7 +200,7 @@ export const useDownloadStore = defineStore('downloadStore', {
         downloadId = headers.get("X-Download-URL") || id;
 
         // Initialize download tracking
-        this.update_download_progress({id,status:'processing'})
+        this.update_download_progress({ id, status: 'processing' })
         if (this.pendingMerges[id]) {
           this.pendingMerges[id][downloadType] = { status: 'processing' };
         }
@@ -259,7 +263,8 @@ export const useDownloadStore = defineStore('downloadStore', {
               contentLength,
               filesize: contentLength,
               downloadedSize,
-              is_audio: isAudio
+              is_audio: isAudio,
+              timestamp: Date.now()
             });
 
             lastUpdateTime = now;
@@ -273,7 +278,7 @@ export const useDownloadStore = defineStore('downloadStore', {
           this.pendingMerges[id][downloadType] = { blob, status: 'completed' };
           await this.checkAndMergeDownloads(id);
         } else {
-          await this.finalizeDownload(id, blob, this.onGoingDownloads[id].filename, this.onGoingDownloads[id].extension, isAudio);
+          await this.finalizeDownload(id,blob, downloadedSize, this.onGoingDownloads[id].filename, this.onGoingDownloads[id].extension, isAudio);
         }
 
       } catch (error) {
@@ -298,7 +303,7 @@ export const useDownloadStore = defineStore('downloadStore', {
           id
         );
 
-        await this.finalizeDownload(id, mergedBlob, this.onGoingDownloads[id].filename, this.onGoingDownloads[id].extension, false);
+        await this.finalizeDownload(id, mergedBlob,this.onGoingDownloads[id].downloadedSize, this.onGoingDownloads[id].filename, this.onGoingDownloads[id].extension, false);
         delete this.pendingMerges[id];
       } catch (error) {
         console.error("Merge failed:", error);
@@ -307,7 +312,7 @@ export const useDownloadStore = defineStore('downloadStore', {
     },
 
     /** Finalizes download and triggers file save */
-    async finalizeDownload(id, blob, filename, extension, isAudio) {
+    async finalizeDownload(id, blob,downloadedSize, filename, extension, isAudio) {
       // Update state and persist
       this.update_download_progress({
         id,
@@ -315,7 +320,8 @@ export const useDownloadStore = defineStore('downloadStore', {
         progress: 100,
         downloadSpeedMbps: "0 Mb/s",
         eta: '00:00',
-        downloadedSize: blob.size
+        downloadedSize: downloadedSize,
+        stopTime: Date.now()
       });
 
       try {
@@ -433,7 +439,9 @@ export const useDownloadStore = defineStore('downloadStore', {
           id,
           downloadName: data.filename,
           filename: data.title,
-          extension: data.extension
+          extension: data.extension,
+          format: data.extension,
+          duration: data.duration
         });
 
         const endTime = performance.now();
