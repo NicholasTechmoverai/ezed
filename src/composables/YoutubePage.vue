@@ -170,7 +170,7 @@ async function handleDownload() {
     error.value = null
     const id = generateUUID()
     downloadStore.onGoingDownloads[id] = {
-      status: "processing",
+      status: "starting",
       progress: 0
     }
 

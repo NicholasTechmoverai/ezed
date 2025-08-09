@@ -5,6 +5,8 @@ import { clearBlob, saveFile } from "../db/download.js"
 import { useStateStore } from './stateStore.js';
 import { useFfmpeg } from '../utils/useFfmpeg.js';
 import axios from 'axios';
+import { audioItags } from '../utils/index.js';
+import { suggestFilename } from '../utils/others.js';
 
 export const useDownloadStore = defineStore('downloadStore', {
   state: () => ({
@@ -72,6 +74,7 @@ export const useDownloadStore = defineStore('downloadStore', {
      * @param {object} prg - Progress object containing download metadata
      */
     async update_download_progress(prg = {}) {
+      console.log("updating", prg)
       if (!prg?.id) {
         console.warn('Invalid progress update', prg);
         return;
@@ -83,11 +86,11 @@ export const useDownloadStore = defineStore('downloadStore', {
 
       // Update progress fields
       const fields = [
-        'filename', 'progress', 'status', 'eta', 
+        'filename', 'progress', 'status', 'eta',
         'downloadSpeedMbps', 'thumbnail', 'filesize',
         'downloadedSize', 'url', 'merge_progress'
       ];
-      
+
       fields.forEach(key => {
         if (prg[key] !== undefined) {
           target[`${prefix}${key}`] = prg[key];
@@ -103,7 +106,7 @@ export const useDownloadStore = defineStore('downloadStore', {
           filename: prg.filename ?? target[`${prefix}filename`],
           status: prg.status ?? 'interrupted',
           thumbnail: prg.thumbnail ?? target[`${prefix}thumbnail`],
-          contentLength: prg.contentLength ?? target[`${prefix}filesize`],
+          filesize: prg.contentLength ?? target[`${prefix}filesize`],
           downloadedSize: prg.downloadedSize ?? target[`${prefix}downloadedSize`],
           stopTime: prg.status === 'completed' ? Date.now() : null,
           hasAudio: isAudio || undefined
@@ -134,10 +137,15 @@ export const useDownloadStore = defineStore('downloadStore', {
      */
     async download_file(endpoint, id, url, itag, ext, startByte = 0, format) {
       if (!url) return console.error("Missing URL");
+      let filename = suggestFilename(url);
+      let extension = ext || (audioItags.includes(itag) ? "mp4a" : "mp4");
+
 
       this.onGoingDownloads[id] ||= {
         status: "starting",
         progress: 0,
+        filename,
+        extension,
         timestamp: Date.now()
       };
 
@@ -154,7 +162,7 @@ export const useDownloadStore = defineStore('downloadStore', {
         };
 
         // await Promise.all([
-          this.handle_download(endpoint, id, url, videoTag, ext, startByte, format, false),
+        this.handle_download(endpoint, id, url, videoTag, ext, startByte, format, false),
           this.handle_download(endpoint, id, url, audioTag, ext, startByte, format, true)
         // ]);
         return;
@@ -184,15 +192,13 @@ export const useDownloadStore = defineStore('downloadStore', {
         // Process response headers
         const headers = response.headers;
         const contentDisposition = headers.get("Content-Disposition");
-        const filename = contentDisposition?.split("filename=")[1]?.replace(/"/g, "") || id;
-        const extension = headers.get("format") || ext || 'mp4';
+
         downloadId = headers.get("X-Download-URL") || id;
 
         // Initialize download tracking
-        this.onGoingDownloads[id].status = "downloading";
+        this.update_download_progress({id,status:'processing'})
         if (this.pendingMerges[id]) {
-          this.pendingMerges[id].filename = filename;
-          this.pendingMerges[id][downloadType] = { status: 'downloading' };
+          this.pendingMerges[id][downloadType] = { status: 'processing' };
         }
 
         // Stream processing setup
@@ -233,12 +239,12 @@ export const useDownloadStore = defineStore('downloadStore', {
             const elapsed = (now - lastUpdateTime) / 1000;
             const chunkSize = downloadedSize - lastDownloadedSize;
             const instantSpeed = (chunkSize / elapsed) / (1024 * 1024); // MB/s
-            
+
             // Calculate smoothed speed
             speedSamples.push(instantSpeed);
             if (speedSamples.length > MAX_SAMPLES) speedSamples.shift();
             const avgSpeed = speedSamples.reduce((a, b) => a + b, 0) / speedSamples.length;
-            
+
             // Update progress metrics
             const progress = Math.min((downloadedSize / contentLength) * 100, 100);
             const remainingSec = (contentLength - downloadedSize) / (avgSpeed * 1024 * 1024);
@@ -246,7 +252,6 @@ export const useDownloadStore = defineStore('downloadStore', {
             this.update_download_progress({
               id,
               url,
-              filename,
               status: 'downloading',
               progress,
               downloadSpeedMbps: this.formatSpeed(avgSpeed),
@@ -268,7 +273,7 @@ export const useDownloadStore = defineStore('downloadStore', {
           this.pendingMerges[id][downloadType] = { blob, status: 'completed' };
           await this.checkAndMergeDownloads(id);
         } else {
-          await this.finalizeDownload(id, blob, filename, extension, isAudio);
+          await this.finalizeDownload(id, blob, this.onGoingDownloads[id].filename, this.onGoingDownloads[id].extension, isAudio);
         }
 
       } catch (error) {
@@ -285,7 +290,7 @@ export const useDownloadStore = defineStore('downloadStore', {
 
       try {
         this.onGoingDownloads[id].status = "merging";
-        
+
         // Use WebWorker for non-blocking merging
         const mergedBlob = await this.useFfmpeg.mergeVideoAudio(
           pending.video.blob,
@@ -293,7 +298,7 @@ export const useDownloadStore = defineStore('downloadStore', {
           id
         );
 
-        await this.finalizeDownload(id, mergedBlob, pending.filename, pending.extension, false);
+        await this.finalizeDownload(id, mergedBlob, this.onGoingDownloads[id].filename, this.onGoingDownloads[id].extension, false);
         delete this.pendingMerges[id];
       } catch (error) {
         console.error("Merge failed:", error);
@@ -423,11 +428,13 @@ export const useDownloadStore = defineStore('downloadStore', {
         const startTime = performance.now();
 
         const { data } = await axios.post(`${B_URL}/yt/download-meta`, { url, itag });
-        this.update_download_progress({ id, filename: data.filename ,extension:data.extension})
-        this.onGoingDownloads[id].name = data.title
-        this.onGoingDownloads[id].downloadName = data.filename
         this.stateStore.addTask({ id: id, name: data.title })
-        this.update_download_progress({ id:id, filename: data.filename ,extension:data.extension})
+        await this.update_download_progress({
+          id,
+          downloadName: data.filename,
+          filename: data.title,
+          extension: data.extension
+        });
 
         const endTime = performance.now();
         console.log(`Loaded file meta:`, data, `in ${(endTime - startTime).toFixed(2)} ms`);
