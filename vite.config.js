@@ -16,9 +16,9 @@ export default defineConfig({
       includeAssets: ['favicon.svg', 'robots.txt'],
       manifest: {
         name: 'e-zed',
-        short_name: 'Z',
+        short_name: 'e-z',
         description:"Download from TikTok, Instagram, YouTube, Facebook, X and more — share a link and get your music or video instantly.",
-        start_url: '/',
+        start_url: '/h',
         display: 'standalone',
         background_color: '#ffffff',
         theme_color: '#42b883',

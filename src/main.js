@@ -25,6 +25,12 @@ const i18n = createI18n({
     messages: { en, ar, hi, sw, zh }
 })
 
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js')
+    .then(() => console.log('Service Worker registered'))
+    .catch(console.error);
+}
+
 const app = createApp(App);
 app.use(naive);
 app.use(router);

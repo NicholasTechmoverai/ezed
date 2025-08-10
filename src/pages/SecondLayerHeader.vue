@@ -19,11 +19,8 @@
                             {{ site.label }}
                         </n-button>
                     </n-space>
-
                 </div>
-
             </n-drawer>
-
             <n-icon size="large" class="cursor-pointer" aria-label="Menu options" @click="drawerVisible = true">
                 <Menu2 />
             </n-icon>

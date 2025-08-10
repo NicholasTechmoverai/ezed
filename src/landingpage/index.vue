@@ -12,7 +12,7 @@
          dark:bg-[linear-gradient(to_bottom,_black,_rgb(55,65,81)_40%,_rgba(var(--theme-rgb),0.5)_70%,_var(--theme))] relative">
 
 
-        <div id="pwa-install-prompt" class="hidden fixed bottom-0 w-full p-4 bg-[var(--theme)] text-white text-center">
+        <div id="pwa-install-prompt" class="hidden fixed bottom-0 w-full p-4 bg-[var(--theme)] text-white text-center z-1000">
             <button id="install-btn" class="px-4 py-2 bg-white text-[var(--theme)] rounded-lg font-medium">Install
                 App</button>
             <button id="dismiss-btn" class="ml-4 px-4 py-2 rounded-lg font-medium">Dismiss</button>

@@ -7,7 +7,6 @@
         />
         <n-text v-if="!collapsed" strong class="text-2xl font-bold" :class="{color:SITEMETA.theme_color}">{{SITEMETA.name}}</n-text>
       </div>
-
       <n-menu :collapsed="collapsed" :collapsed-width="64" :collapsed-icon-size="22" :options="menuOptions"
         :render-label="renderMenuLabel" :render-icon="renderMenuIcon" :expand-icon="expandIcon"    @select="handleMenuSelect"  class="mt-2" />
     </n-layout-sider>
