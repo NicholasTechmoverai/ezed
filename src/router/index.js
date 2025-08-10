@@ -12,6 +12,7 @@ const MainContentPage = () => import('../pages/MainContentPage.vue')
 const DownloadCardMount = () => import('../views/DownloadCardMount.vue')
 const YoutubeListPage = () => import('../views/YoutubeListPage.vue')
 const FileMetaCard = () => import('../cards/FileMetaCard.vue')
+const HandleSharePage = () => import('../pages/HandleShare.vue')
 
 // If these are really composables turned into single-file components, they can be lazy too:
 const YoutubePage = () => import('../composables/YoutubePage.vue')
@@ -26,6 +27,12 @@ const routes = [
     path: '/',
     name: 'Landing',
     component: LandingPage,
+  },
+    {
+    path: '/share',
+    name: 'HandleShare',
+    component: HandleSharePage,
+    props:true
   },
   {
     path: '/h',
