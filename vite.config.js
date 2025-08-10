@@ -17,6 +17,7 @@ export default defineConfig({
       manifest: {
         name: 'e-zed',
         short_name: 'Z',
+        description:"Download from TikTok, Instagram, YouTube, Facebook, X and more — share a link and get your music or video instantly.",
         start_url: '/',
         display: 'standalone',
         background_color: '#ffffff',
