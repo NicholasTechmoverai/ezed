@@ -43,8 +43,13 @@ export default defineConfig({
             url: 'url',
             files: [
               {
-                name: 'file',
-                accept: ['image/*', 'video/*']
+                name: 'files',
+                accept: [
+                  'text/*',
+                  'image/*',
+                  'video/*',
+                  'application/*'
+                ]
               }
             ]
           }
