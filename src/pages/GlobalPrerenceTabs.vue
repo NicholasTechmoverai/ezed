@@ -23,18 +23,13 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useUserStore } from '../store/userStore'
 import { MoonOutline, SunnyOutline } from '@vicons/ionicons5'
-import { i18n } from '../main'
 import { h } from 'vue'
 
 const userStore = useUserStore()
 const isDark = ref(userStore.theme === 'dark')
-
-watch(isDark, (val) => {
-    userStore.setTheme(val ? 'dark' : 'light')
-})
 
 const languages = [
     { label: 'English', value: 'en', flag: 'us' },          // 🇺🇸
@@ -45,21 +40,23 @@ const languages = [
     { label: 'العربية', value: 'ar', flag: 'sa' }           // Arabic - 🇸🇦
 ]
 
-const selectedLanguage = ref(languages[0])
+const selectedLanguage = computed(() => 
+  languages.find(l => l.value === userStore.lang)
+)
 
-// const languageOptions = languages.map(lang => ({
-//     label: lang.label,
-//     key: lang.value,
-//     value: lang.value,
-// }))
+watch(isDark, (val) => {
+    userStore.setTheme(val ? 'dark' : 'light')
+})
+
+
 
 const languageOptions = languages.map(lang => ({
-  key: lang.value,
-  label: () =>
-    h('div', { class: 'flex items-center gap-2 text-gray-700 dark:text-white' }, [
-      h('span', { class: `fi fi-${lang.flag}` }),
-      h('span', lang.label)
-    ])
+    key: lang.value,
+    label: () =>
+        h('div', { class: 'flex items-center gap-2 text-gray-700 dark:text-white' }, [
+            h('span', { class: `fi fi-${lang.flag}` }),
+            h('span', lang.label)
+        ])
 }))
 
 
@@ -67,7 +64,7 @@ function onSelectLanguage(value) {
     const lang = languages.find(l => l.value === value)
     if (lang) {
         selectedLanguage.value = lang
-        i18n.global.locale.value = lang.value
+        userStore.setLang(value)
     }
 }
 </script>

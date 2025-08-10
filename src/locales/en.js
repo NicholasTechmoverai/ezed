@@ -1,5 +1,9 @@
+import { download } from "naive-ui/es/_utils";
+
 // locales/en.js
 export default {
+    navButtons: ["Home", "Downloads", "About"],
+    l_badge: "Continue on website",
     pwaFeatures: [
         { title: "Lightning Fast", desc: "Optimized for performance with PWA technology" },
         { title: "Installable", desc: "Add to home screen for app-like experience" },

@@ -1,133 +1,149 @@
 <template>
-  <n-space vertical class="min-h-screen">
-    <!-- <n-switch v-model:value="collapsed" /> -->
-    <n-layout has-sider>
-      <n-layout-sider
-        bordered
-        collapse-mode="width"
-        :collapsed-width="64"
-        :width="240"
-        :collapsed="collapsed"
-        show-trigger
-        @collapse="collapsed = true"
-        @expand="collapsed = false"
-      >
-        <n-menu
-          :collapsed="collapsed"
-          :collapsed-width="64"
-          :collapsed-icon-size="22"
-          :options="menuOptions"
-          :render-label="renderMenuLabel"
-          :render-icon="renderMenuIcon"
-          :expand-icon="expandIcon"
+    <n-layout-sider bordered collapse-mode="width" :collapsed-width="64" :width="240" v-model:collapsed="collapsed"
+      show-trigger class="h-screen fixed">
+      <div class="p-4 flex items-center gap-2 justify-center border-b border-gray-200 dark:border-gray-700">
+        <img :src="SITEMETA.logo" :alt="SITEMETA.name || 'Site Logo'"
+          class="w-10 h-8 rounded-xl shadow-lg dark:shadow-gray-800/50 transition-all duration-300"
         />
-      </n-layout-sider>
-      <!-- <n-layout>
-        <span>Content</span>
-      </n-layout> -->
-    </n-layout>
-  </n-space>
+        <n-text v-if="!collapsed" strong class="text-2xl font-bold" :class="{color:SITEMETA.theme_color}">{{SITEMETA.name}}</n-text>
+      </div>
+
+      <n-menu :collapsed="collapsed" :collapsed-width="64" :collapsed-icon-size="22" :options="menuOptions"
+        :render-label="renderMenuLabel" :render-icon="renderMenuIcon" :expand-icon="expandIcon"    @select="handleMenuSelect"  class="mt-2" />
+    </n-layout-sider>
+
 </template>
 
-<script>
-import { BookmarkOutline, CaretDownOutline } from "@vicons/ionicons5";
-import { NIcon } from "naive-ui";
-import { defineComponent, h, ref } from "vue";
+<script setup>
+import { ref, h } from 'vue'
+import {
+  NIcon,
+  NText,
+  NLayout,
+  NLayoutSider,
+  NLayoutContent,
+  NMenu
+} from 'naive-ui'
+
+import {
+  MusicalNoteSharp,
+  CloudDownloadOutline,
+  DownloadOutline,
+  FolderOpenOutline,
+  ShareSocialOutline,
+  PersonCircleOutline,
+  SettingsOutline,
+  ChevronDownOutline
+} from '@vicons/ionicons5'
+import { SITEMETA } from '../utils'
+import { allSites } from '../composables'
+import router from '../router'
+import { useStateStore } from '../store/stateStore'
+const stateStore = useStateStore()
+
+const collapsed = ref(false)
 
 const menuOptions = [
   {
-    label: "Hear the Wind Sing",
-    key: "hear-the-wind-sing",
-    href: "https://en.wikipedia.org/wiki/Hear_the_Wind_Sing"
-  },
-  {
-    label: "Pinball 1973",
-    key: "pinball-1973",
-    disabled: true,
+    label: 'Ongoing Downloads',
+    key: 'ongoingdownloads',
+    icon: CloudDownloadOutline,
     children: [
-      {
-        label: "Rat",
-        key: "rat"
-      }
+      { label: 'down1', key: 'down1' },
+      { label: 'down2', key: 'down2' }
+      // Add more ongoing download items dynamically if needed
     ]
   },
   {
-    label: "A Wild Sheep Chase",
-    key: "a-wild-sheep-chase",
-    disabled: true
+    label: 'Download video',
+    key: 'download_video',
+    icon: DownloadOutline,
+    children: allSites
   },
   {
-    label: "Dance Dance Dance",
-    key: "Dance Dance Dance",
-    children: [
-      {
-        type: "group",
-        label: "People",
-        key: "people",
-        children: [
-          {
-            label: "Narrator",
-            key: "narrator"
-          },
-          {
-            label: "Sheep Man",
-            key: "sheep-man"
-          }
-        ]
-      },
-      {
-        label: "Beverage",
-        key: "beverage",
-        children: [
-          {
-            label: "Whisky",
-            key: "whisky",
-            href: "https://en.wikipedia.org/wiki/Whisky"
-          }
-        ]
-      },
-      {
-        label: "Food",
-        key: "food",
-        children: [
-          {
-            label: "Sandwich",
-            key: "sandwich"
-          }
-        ]
-      },
-      {
-        label: "The past increases. The future recedes.",
-        key: "the-past-increases-the-future-recedes"
-      }
-    ]
+    label: 'Playlists',
+    key: 'playlists',
+    icon: FolderOpenOutline
+  },
+  {
+    label: 'Shares',
+    key: 'shares',
+    icon: ShareSocialOutline
+  },
+  {
+    label: 'Profile',
+    key: 'profile',
+    icon: PersonCircleOutline
+  },
+  {
+    label: 'Settings',
+    key: 'settings',
+    icon: SettingsOutline
   }
-];
+]
 
-export default defineComponent({
-  setup() {
-    return {
-      menuOptions,
-      collapsed: ref(true),
-      renderMenuLabel(option) {
-        if ("href" in option) {
-          return h("a", { href: option.href, target: "_blank" }, [
-            option.label
-          ]);
-        }
-        return option.label;
-      },
-      renderMenuIcon(option) {
-        if (option.key === "sheep-man")
-          return true;
-        if (option.key === "food")
-          return null;
-        return h(NIcon, null, { default: () => h(BookmarkOutline) });
-      },
-      expandIcon() {
-        return h(NIcon, null, { default: () => h(CaretDownOutline) });
-      }
-    };
-  }
-});
+const renderMenuLabel = (option) => {
+  return h(
+    'span',
+    { class: 'text-gray-800 dark:text-gray-200 hover:text-indigo-500 select-none' },
+    option.label
+  )
+}
+
+const renderMenuIcon = (option) => {
+  return option.icon
+    ? h(NIcon, null, { default: () => h(option.icon) })
+    : null
+}
+
+const expandIcon = () => {
+  return h(NIcon, { size: 16 }, { default: () => h(ChevronDownOutline) })
+}
+
+function handleMenuSelect(key) {
+          stateStore.setLoadingBar(0)
+
+  router.push(`${key}`); 
+}
 </script>
+
+<style scoped>
+.n-layout-sider {
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.n-layout-sider::-webkit-scrollbar {
+  width: 4px;
+}
+
+.n-layout-sider::-webkit-scrollbar-thumb {
+  background-color: rgba(79, 70, 229, 0.3);
+  border-radius: 4px;
+}
+
+.n-layout-sider::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+.n-menu {
+  --n-item-height: 44px;
+}
+
+.n-menu :deep(.n-menu-item-content) {
+  transition: all 0.2s ease;
+}
+
+.n-menu :deep(.n-menu-item-content--selected) {
+  background-color: rgba(99, 102, 241, 0.1) !important;
+  color: #6366f1 !important;
+}
+
+.n-menu :deep(.n-menu-item-content--selected .n-icon) {
+  color: #6366f1 !important;
+}
+
+.n-menu :deep(.n-menu-item-content:hover) {
+  background-color: rgba(99, 102, 241, 0.05);
+}
+</style>

@@ -4,6 +4,8 @@ export default {
         { title: "可安装", desc: "添加到主屏幕，享受类应用体验" },
         { title: "深色模式", desc: "漂亮的Catppuccin风格深色主题" }
     ],
+    navButtons: ["首页", "下载", "关于"],
+    l_badge: "继续浏览网站",
     downloadFeatures: [
         "直接下载",
         "精美进度条",

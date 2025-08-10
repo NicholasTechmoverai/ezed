@@ -3,7 +3,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 
 // Small/local components you frequently use can remain static if you prefer.
 // For larger pages/components we use lazy imports to improve initial load.
-import LandingPage from '../landingpage/LandingPage.vue'
+import LandingPage from '../landingpage/index.vue'
 import LayoutPage from '../pages/LayoutPage.vue'
 import DownloadsPage from '../pages/DownloadsPage.vue'
 

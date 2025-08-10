@@ -1,13 +1,20 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
+import { i18n } from '../main'
 
 export const useUserStore = defineStore('userUseStore', () => {
   const theme = ref('light')
+  const lang = ref('en')
   const user = ref(null)
 
   function setTheme(value) {
     theme.value = value
     document.documentElement.classList.toggle('dark', value === 'dark')
+  }
+
+  function setLang(value) {
+    lang.value = value || 'en'
+    i18n.global.locale.value = lang.value
   }
 
   function setUser(userData) {
@@ -18,29 +25,39 @@ export const useUserStore = defineStore('userUseStore', () => {
     user.value = null
   }
 
+  function init() {
+    // Restore theme
+    const savedTheme = localStorage.getItem('theme')
+    if (savedTheme) setTheme(savedTheme)
+
+    // Restore language
+    const savedLang = localStorage.getItem('lang')
+    if (savedLang) setLang(savedLang)
+  }
+
+  watch(theme, (newTheme) => {
+    localStorage.setItem('theme', newTheme)
+  })
+
+  watch(lang, (newLang) => {
+    localStorage.setItem('lang', newLang)
+  })
+
+  init()
+
   return {
     theme,
+    lang,
     user,
     setTheme,
+    setLang,
     setUser,
-    clearUser
+    clearUser,
+    init
   }
 }, {
   persist: {
     key: 'user_',
-    storage: localStorage,
-    afterRestore: () => {
-      const maxAge = 7 * 24 * 60 * 60 * 1000 // 7 days
-      const savedAt = localStorage.getItem('user-store-timestamp')
-      if (savedAt && Date.now() - parseInt(savedAt, 10) > maxAge) {
-        localStorage.removeItem('user_')
-        localStorage.removeItem('user-store-timestamp')
-      }
-    },
-    beforeRestore: () => {
-      if (!localStorage.getItem('user-store-timestamp')) {
-        localStorage.setItem('user-store-timestamp', Date.now().toString())
-      }
-    }
+    storage: localStorage
   }
 })

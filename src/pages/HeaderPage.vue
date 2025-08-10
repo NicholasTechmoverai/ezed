@@ -1,8 +1,12 @@
 <template>
   <header class="app-header">
     <n-space justify="space-between" align="center">
-      <div>
-        <logo /><span class="text-xl text-gray-500 opacity-80">/</span>
+      <div class="flex flex-row justify-center items-center">
+        <div v-if="isMobile">
+        <logo />
+
+        </div>
+        <span class="text-xl text-gray-500 opacity-80">/</span>
         <n-button class="opacity-80" size="tiny" secondary @click="openTab(activePage.key)">
           <n-icon>
             <component :is="activePage.icon" />
@@ -15,17 +19,6 @@
       </div>
       <n-space align="center" size="small">
         <GlobalPrerenceTabs />
-        <!-- <n-switch v-model:value="isDark" size="small">
-          <template #checked-icon>
-            <n-icon :component="MoonOutline" />
-          </template>
-<template #unchecked-icon>
-            <n-icon :component="SunnyOutline" />
-          </template>
-</n-switch> -->
-
-
-
         <n-dropdown :options="userMenuOptions" size="small" placement="bottom-end" trigger="click"
           @select="handleMenuSelect">
           <n-button quaternary circle class="user-avatar-btn">
@@ -68,8 +61,10 @@ import { useRoute } from 'vue-router'
 import { allSites, openTab } from '../composables'
 import router from '../router'
 import GlobalPrerenceTabs from './GlobalPrerenceTabs.vue'
+import { useIsMobile } from '../reusables'
 
 const route = useRoute()
+const isMobile = useIsMobile()
 
 const activePage = computed(() => {
   const segments = route.path.split('/')
