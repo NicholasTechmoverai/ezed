@@ -3,10 +3,10 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-10 items-center w-full">
             <div class="max-w-xl text-center md:text-left">
                 <h1 class="text-4xl font-extrabold text-gray-900 dark:text-white mb-6 leading-tight lobster-font animate-fade-delay">
-                    {{ info_header }}
+                    {{ t('footer_header') }}
                 </h1>
                 <p class="text-lg text-gray-700 dark:text-gray-300 leading-relaxed animate-fade-delay">
-                    {{ info }}
+                    {{ t("footer_info") }}
                 </p>
             </div>
             <PhoneLayout />
@@ -17,7 +17,7 @@
                 &copy; 2025 {{ SITEMETA.name }}. All rights reserved.
             </p>
             <div class="flex items-center space-x-4">
-                <span class="text-gray-600 dark:text-gray-400 select-none hidden sm:inline">Scan QR to visit:</span>
+                <span class="text-gray-600 dark:text-gray-400 select-none hidden sm:inline">{{t('scan')}}</span>
                 <n-qr-code :value="'https://e-zed.netlify.app/'"       :icon-src="SITEMETA.logo" :color="SITEMETA.theme_color" :icon-size="32"/>
             </div>
         </footer>
@@ -28,11 +28,8 @@
 import { ref } from 'vue';
 import PhoneLayout from './PhoneLayout.vue';
 import { SITEMETA } from '../utils';
+import { useI18n } from 'vue-i18n'
 
-const info_header = ref(
-    'Easily Download Your Favorite Music & Videos'
-);
-const info = ref(
-    'Save videos and songs with a single tap or share. Use the E-Zed app or access it directly from your browser—fast, free, and no registration required.'
-);
+const { t } = useI18n()
+
 </script>

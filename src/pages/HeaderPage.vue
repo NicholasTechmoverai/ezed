@@ -14,15 +14,15 @@
         </div>
       </div>
       <n-space align="center" size="small">
-        <GlobalPrerenceTabs/>
+        <GlobalPrerenceTabs />
         <!-- <n-switch v-model:value="isDark" size="small">
           <template #checked-icon>
             <n-icon :component="MoonOutline" />
           </template>
-          <template #unchecked-icon>
+<template #unchecked-icon>
             <n-icon :component="SunnyOutline" />
           </template>
-        </n-switch> -->
+</n-switch> -->
 
 
 

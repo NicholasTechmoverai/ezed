@@ -78,7 +78,7 @@
 
 <template>
   <div class="flex flex-col justify-center items-center gap-9">
-    <h4 class="text-4xl font-extrabold text-gray-900 dark:text-white text-center mb-6 leading-tight animate-fade-delay lobster-font" >Download videos from this platforms</h4>
+    <h4 class="text-4xl font-extrabold text-gray-900 dark:text-white text-center mb-6 leading-tight animate-fade-delay lobster-font" >{{t('dwonloadplatforms')}}</h4>
     <div class="slider" style="--width: 200px;
       --height: 200px;
       --quantity: 9;">
@@ -115,6 +115,8 @@ import {
   LogoReddit
 } from '@vicons/ionicons5'
 import { SITEMETA } from '../utils';
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 
 const sites = [
   {

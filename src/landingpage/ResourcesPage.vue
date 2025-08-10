@@ -40,17 +40,23 @@ import QualitySelectionShot from "../assets/qualitySelectionShot.png"
 import ShotDisplayer from './ShotDisplayer.vue';
 import { Sitemap } from "@vicons/fa";
 import { SITEMETA } from "../utils";
+import { useI18n } from 'vue-i18n'
+import { computed } from "vue";
+const { tm } = useI18n()
 
 
-const downloadFeatures = [
-    { id: "direct-input", label: "Direct Download", icon: "📥", image:inputCardShot, component: ShotDisplayer },
-    { id: "progress-visualization", label: "Beautiful Progress Bar", icon: "📊", image:DownloadProgressShot, component: ShotDisplayer },
-    { id: "resume-support", label: "Resume Interrupted Downloads", icon: "⏯️", image:DownloadProgressShot, component: ShotDisplayer },
-    { id: "quality-options", label: "Quality Selection", icon: "✨",  image:QualitySelectionShot,component: ShotDisplayer },
-    { id: "playlist-support", label: "Playlist Downloads", icon: "🎵", image:Downloads, component: ShotDisplayer },
-    { id: "manga-downloads", label: "Manage Downloads", icon: "🎵", image:Downloads, component: ShotDisplayer }
+const downloadFeatures = computed(() => {
+  const labels = tm('downloadFeatures') // This will return translated array
+  return [
+    { id: "direct-input", label: labels[0], icon: "📥", image: inputCardShot, component: ShotDisplayer },
+    { id: "progress-visualization", label: labels[1], icon: "📊", image: DownloadProgressShot, component: ShotDisplayer },
+    { id: "resume-support", label: labels[2], icon: "⏯️", image: DownloadProgressShot, component: ShotDisplayer },
+    { id: "quality-options", label: labels[3], icon: "✨", image: QualitySelectionShot, component: ShotDisplayer },
+    { id: "playlist-support", label: labels[4], icon: "🎵", image: Downloads, component: ShotDisplayer },
+    { id: "manga-downloads", label: labels[5], icon: "🎵", image: Downloads, component: ShotDisplayer }
+  ]
+})
 
-];
 </script>
 
 <style scoped>

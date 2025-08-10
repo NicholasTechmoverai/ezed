@@ -15,7 +15,7 @@
                                     <LogoGooglePlaystore />
                                 </n-icon>
                             </template>
-                            <span class="font-medium">Download for Android</span>
+                            <span class="font-medium">{{tm('download.a')}}</span>
                         </n-button>
 
                         <n-button type="primary" size="large" ghost
@@ -25,7 +25,7 @@
                                     <logo-windows />
                                 </n-icon>
                             </template>
-                            <span class="font-medium">Download for Windows</span>
+                            <span class="font-medium">{{tm('download.w')}}</span>
                         </n-button>
 
                         <n-button type="primary" size="large" ghost
@@ -35,12 +35,12 @@
                                     <logo-apple />
                                 </n-icon>
                             </template>
-                            <span class="font-medium">Download for macOS</span>
+                            <span class="font-medium">{{tm('download.m')}}</span>
                         </n-button>
                     </div>
 
                     <p class="mt-6 text-sm text-gray-500 dark:text-gray-200 font-inter opacity-0 animate-fade-delay-3">
-                        Free — just one-time signup
+                        {{tm('free')}}
                     </p>
                 </div>
             </div>
@@ -51,4 +51,8 @@
 import { LogoWindows, LogoApple, LogoGooglePlaystore } from "@vicons/ionicons5";
 import phone_layout from "../assets/PhoneFrame.png"
 import { SITEMETA } from "../utils";
+import { useI18n } from 'vue-i18n'
+
+const { tm } = useI18n()
+
 </script>

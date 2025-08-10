@@ -34,7 +34,7 @@
 
                 <h3
                     class="text-2xl sm:text-3xl text-gray-900 dark:text-white my-10 leading-tight max-w-3xl  lobster-font opacity-0 animate-fade-delay">
-                    {{ SITEMETA.description }}
+                    {{ t('description') }}
                 </h3>
 
                 <!-- Download Buttons -->
@@ -46,7 +46,7 @@
                                 <LogoGooglePlaystore />
                             </n-icon>
                         </template>
-                        <span class="font-medium">Download for Android</span>
+                        <span class="font-medium">{{tm('download.a')}}</span>
                     </n-button>
 
                     <n-button type="primary" size="large" ghost
@@ -56,7 +56,7 @@
                                 <logo-windows />
                             </n-icon>
                         </template>
-                        <span class="font-medium">Download for Windows</span>
+                        <span class="font-medium">{{tm('download.w')}}</span>
                     </n-button>
 
                     <n-button type="primary" size="large" ghost
@@ -66,21 +66,24 @@
                                 <logo-apple />
                             </n-icon>
                         </template>
-                        <span class="font-medium">Download for macOS</span>
+                        <span class="font-medium">{{tm('download.m')}}</span>
                     </n-button>
                 </div>
 
                 <p class="mt-6 text-sm text-gray-500 dark:text-gray-900 font-inter opacity-0 animate-fade-delay-3">
-                    Free — just one-time signup
+                    {{t('free')}}
                 </p>
-
                 <div class="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-5xl">
-                    <div v-for="(feature, idx) in pwaFeatures" :key="idx"
+                    <div v-for="(feature, idx) in tm('pwaFeatures')" :key="idx"
                         class="p-6 rounded-xl bg-white/70 dark:bg-[#313244]/70 shadow-md dark:shadow-none transition-all hover:scale-[1.02] opacity-0"
                         :class="`animate-fade-slide-delay-${idx}`">
-                        <div class="text-[var(--theme)] text-3xl mb-4">{{ feature.icon }}</div>
-                        <h3 class="text-2xl text-gray-800 dark:text-gray-100 font-bold mb-2 font-geist">{{ feature.title }}</h3>
-                        <p class="text-gray-600 dark:text-gray-300 font-inter">{{ feature.desc }}</p>
+                        <div class="text-[var(--theme)] text-3xl mb-4">{{ icons[idx] }}</div>
+                        <h3 class="text-2xl text-gray-800 dark:text-gray-100 font-bold mb-2 font-geist">
+                            {{ feature.title }}
+                        </h3>
+                        <p class="text-gray-600 dark:text-gray-300 font-inter">
+                            {{ feature.desc }}
+                        </p>
                     </div>
                 </div>
             </div>
@@ -94,7 +97,7 @@
             <div class="mt-15 flex flex-col gap-30">
                 <ResourcesPage />
                 <SitesPage />
-                <FooterPage/>
+                <FooterPage />
             </div>
 
         </div>
@@ -102,17 +105,19 @@
 </template>
 
 <script setup>
+import { useI18n } from 'vue-i18n'
+
 import { SITEMETA } from "../utils";
 import { LogoWindows, LogoApple, LogoGooglePlaystore } from "@vicons/ionicons5";
 import SitesPage from "./SitesPage.vue";
 import GlobalPrerenceTabs from "../pages/GlobalPrerenceTabs.vue";
 import ResourcesPage from "./ResourcesPage.vue";
 import FooterPage from "./FooterPage.vue";
-const pwaFeatures = [
-    { icon: "⚡", title: "Lightning Fast", desc: "Optimized for performance with PWA technology" },
-    { icon: "📱", title: "Installable", desc: "Add to home screen for app-like experience" },
-    { icon: "🌓", title: "Dark Mode", desc: "Beautiful catppuccin-inspired dark theme" }
-];
+const { t } = useI18n()
+const { tm } = useI18n()
+
+const icons = ["⚡", "📱", "🌓"]
+
 
 if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
@@ -147,7 +152,7 @@ window.addEventListener("beforeinstallprompt", (e) => {
 @import url('https://fonts.googleapis.com/css2?family=Lobster&display=swap');
 
 .lobster-font {
-  font-family: 'Lobster', cursive;
+    font-family: 'Lobster', cursive;
 }
 
 .font-geist {
