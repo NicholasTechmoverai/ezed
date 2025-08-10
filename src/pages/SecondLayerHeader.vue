@@ -1,25 +1,33 @@
 <template>
     <div class="flex flex-row items-center gap-2">
-        <n-tooltip trigger="click" placement="bottom-end" :show-arrow="false">
-            <template #trigger>
-                <n-icon size="large" class="cursor-pointer" aria-label="Menu options">
-                    <Menu2 />
-                </n-icon>
-            </template>
+        <div>
+            <n-drawer v-model:show="drawerVisible" placement="left" size="240px" show-mask :mask-closable="true">
+                <div class="relative p-1">
+                    <div
+                        class="p-4 flex items-center gap-2 justify-center border-b border-gray-200 dark:border-gray-700">
+                        <img :src="SITEMETA.logo" :alt="SITEMETA.name || 'Site Logo'"
+                            class="w-10 h-8 rounded-xl shadow-lg dark:shadow-gray-800/50 transition-all duration-300" />
+                        <n-text v-if="!collapsed" strong class="text-2xl font-bold"
+                            :class="{ color: SITEMETA.theme_color }">{{ SITEMETA.name }}</n-text>
+                    </div>
+                    <n-space vertical size="medium" class="p-4">
+                        <n-button v-for="(site, index) in allSites" :key="index" size="medium" block
+                            @click="openTab(site.key); drawerVisible = false">
+                            <n-icon>
+                                <component :is="site.icon" />
+                            </n-icon>
+                            {{ site.label }}
+                        </n-button>
+                    </n-space>
 
-            <template #default>
-                <n-space size="small">
-                    <n-button v-for="(site, index) in allSites" :key="index" size="tiny" secondary
-                        @click="openTab(site.key)">
-                        <n-icon>
-                            <component :is="site.icon" />
-                        </n-icon>
-                        {{ site.label }}
-                    </n-button>
+                </div>
 
-                </n-space>
-            </template>
-        </n-tooltip>
+            </n-drawer>
+
+            <n-icon size="large" class="cursor-pointer" aria-label="Menu options" @click="drawerVisible = true">
+                <Menu2 />
+            </n-icon>
+        </div>
         <div class="flex flex-row  p-2 space-x-2">
             <n-button text @click="toggleSearch">
                 <n-icon size="large">
@@ -46,10 +54,12 @@ import router from '../router'
 import { allSites } from '../composables'
 import { useRoute } from 'vue-router'
 import { useStateStore } from '../store/stateStore'
+import { SITEMETA } from '../utils'
 const showSearch = ref(false)
 const route = useRoute()
 const stateStore = useStateStore()
 const searchQuery = ref('')
+const drawerVisible = ref(false)
 
 const toggleSearch = () => {
     showSearch.value = !showSearch.value
