@@ -71,20 +71,26 @@ async function getLatestShareData() {
 }
 
 onMounted(async () => {
+  console.log('Share page mounted, loading share data from IndexedDB...');
   try {
-    const data = await getLatestShareData()
+    const data = await getLatestShareData();
     if (data) {
-      shareData.value = data
+      console.log('Loaded shared data:', data);
+      shareData.value = data;
+    } else {
+      console.log('No shared data found');
     }
   } catch (e) {
-    console.error('Failed to load share data:', e)
+    console.error('Failed to load share data:', e);
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-})
+});
 
 async function handleDone() {
-  // Optionally: clear share data from IndexedDB here if you want
-  router.push('/h') // redirect home or anywhere
+  console.log('Done button clicked, navigating home');
+  router.push('/h'); // or '/' or wherever you want
 }
+
+
 </script>
