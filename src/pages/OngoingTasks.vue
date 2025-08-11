@@ -32,6 +32,7 @@ import { useStateStore } from '../store/stateStore'
 import router from '../router'
 
 const stateStore = useStateStore()
+stateStore.init()
 const activeTaskId = ref(stateStore.openedTasks[0]?.id || null)
 
 watch(

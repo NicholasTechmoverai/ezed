@@ -21,19 +21,19 @@
                     </n-space>
                 </div>
             </n-drawer>
-            <n-icon size="large" class="cursor-pointer" aria-label="Menu options" @click="drawerVisible = true">
+            <n-icon v-if="isMobile"  size="25" class="cursor-pointer" aria-label="Menu options" @click="drawerVisible = true">
                 <Menu2 />
             </n-icon>
         </div>
-        <div class="flex flex-row  p-2 space-x-2">
+        <div class="flex flex-row   h-full items-center m-auto justify-center p-2 space-x-2">
             <n-button text @click="toggleSearch">
-                <n-icon size="large">
+                <n-icon size="25">
                     <SearchOutline />
                 </n-icon>
             </n-button>
 
             <transition name="fade">
-                <n-input v-if="showSearch" v-model:value="searchQuery" placeholder="Search..." size="small" clearable
+                <n-input v-if="showSearch" v-model:value="searchQuery" placeholder="Search..." size="medium" clearable
                     round @blur="handleBlur" style="width: 200px" />
             </transition>
         </div>
@@ -52,12 +52,13 @@ import { allSites } from '../composables'
 import { useRoute } from 'vue-router'
 import { useStateStore } from '../store/stateStore'
 import { SITEMETA } from '../utils'
+import { useIsMobile } from '../reusables'
 const showSearch = ref(false)
 const route = useRoute()
 const stateStore = useStateStore()
 const searchQuery = ref('')
 const drawerVisible = ref(false)
-
+const isMobile = useIsMobile()
 const toggleSearch = () => {
     showSearch.value = !showSearch.value
 }

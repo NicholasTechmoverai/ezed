@@ -8,12 +8,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from tortoise import Tortoise  # Needed for shutdown
 import socketio
 from fastapi.staticfiles import StaticFiles
-# from web_socket.main import (
-#     MainNamespace,
-#     RecipesNamespace,
-#     UsersNamespace,
-#     NotificationsNamespace,
-# )
+from web_socket.main import (
+    UsersNamespace,
+    NotificationsNamespace,
+)
 
 import sys
 import platform
@@ -24,12 +22,14 @@ if platform.system() == "Windows":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     
 from config import init_db  # Your DB init logic
+from routes.auth import auth_router
 from routes.instagram import instagram_router
 from routes.facebook import facebook_router
 from routes.tiktok import tiktok_router
 from routes.youtube import youtube_router
 from routes.x import x_router
 from utils.limiter import limiter
+from utils.user import AuthService
 
 
 import os
@@ -62,9 +62,9 @@ sio = socketio.AsyncServer(
 
 # sio.register_namespace(MainNamespace("/main"))
 # sio.register_namespace(RecipesNamespace("/recipes", RecipeService()))
-# sio.register_namespace(UsersNamespace("/users", AuthService()))
-# notifications_namespace = NotificationsNamespace("/notifications", AuthService())
-# sio.register_namespace(notifications_namespace)
+sio.register_namespace(UsersNamespace("/users", AuthService()))
+notifications_namespace = NotificationsNamespace("/notifications", AuthService())
+sio.register_namespace(notifications_namespace)
 
 zed_app = socketio.ASGIApp(
     sio,
@@ -82,12 +82,12 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
         status_code=429, content={"detail": "Rate limit exceeded. Please wait."}
     )
 
-
 app.include_router(instagram_router, prefix="/api/inst")
 app.include_router(facebook_router, prefix="/api/fb")
 app.include_router(tiktok_router, prefix="/api/tk")
 app.include_router(youtube_router, prefix="/api/yt")
 app.include_router(x_router, prefix="/api/x")
+app.include_router(auth_router, prefix="/api/auth")
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))

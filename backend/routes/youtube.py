@@ -40,7 +40,7 @@ async def download_instagram(
     request: Request,
     username: str,
     data: DownloadRequest,
-    # user: Users = Depends(get_current_user),
+    current: dict = Depends(get_current_user),  # user + token
 ):
     """
     Download Instagram media content.
@@ -56,6 +56,7 @@ async def download_instagram(
         if not data.url:
             raise HTTPException(status_code=400, detail="URL is required")
 
+
         # Set default extension if not provided
         file_ext = data.ext or "mp4"
         content_type = mimetypes.guess_type(f"file.{file_ext}")[0] or "video/mp4"
@@ -70,7 +71,7 @@ async def download_instagram(
 
         async def generate():
             async for chunk in downloader.download_stream(
-                url=data.url, itag=data.itag, start_byte=data.start_byte
+                url=data.url, itag=data.itag, start_byte=data.start_byte, token=current["token"]
             ):
                 yield chunk
 
@@ -124,7 +125,7 @@ async def get_youtube_songs(request: Request, data: ListRequest):
 
 class DownloadMetatRequest(BaseModel):
     url: str
-    itag: Optional[str]=None
+    itag: Optional[str] = None
 
 
 @youtube_router.post("/download-meta")

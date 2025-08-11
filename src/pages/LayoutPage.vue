@@ -14,13 +14,13 @@
     >
       <n-layout-header
         bordered
-        class="flex flex-col p-3 sticky top-0  z-30"
+        class="flex flex-col p-3 fixed top-0  z-30"
       >
         <HeaderPage />
         <SecondLayerHeader />
       </n-layout-header>
 
-      <n-layout-content class="flex-1 overflow-auto">
+      <n-layout-content class="flex-1 overflow-auto mt-[100px]">
         <Transition
           enter-active-class="transition-transform transition-opacity duration-300 ease-out"
           enter-from-class="translate-x-4 opacity-0"
@@ -41,15 +41,19 @@
 import HeaderPage from './HeaderPage.vue';
 import SecondLayerHeader from './SecondLayerHeader.vue';
 import MainContentPage from './MainContentPage.vue';
+
 import SideMenu from './SideMenu.vue';
 import { useIsMobile } from '../reusables';
-import { useLoadingBar } from 'naive-ui'
+import { useLoadingBar, useMessage } from 'naive-ui'
 import { useStateStore } from '../store/stateStore';
 import { watch } from 'vue';
 const stateStore = useStateStore()
 const loadingBar = useLoadingBar()
+const message = useMessage()
 const collapsed = ref(false);  
 import { ref, computed } from 'vue';
+import { usersSocket } from '../web_socket';
+import { useNotificationSocket } from '../web_socket/useNotificationSocket';
 
 const contentMarginLeft = computed(() => {
   if (isMobile.value) return '0px'; 
@@ -83,6 +87,8 @@ watch(
     }
   }
 )
+useNotificationSocket()
 
 const isMobile = useIsMobile()
+
 </script>

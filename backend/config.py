@@ -4,7 +4,7 @@ WEB_SERVER = 'https://e-zed.netlify.app'
 BASE_SERVER = 'https://teacher-tomatoes-travelers-you.trycloudflare.com'
 # BASE_SERVER = 'http://localhost:8000'
 
-db_url = "mysql://root:75223031@localhost/the_food_lovers"
+db_url = "mysql://root:75223031@localhost/e_zed"
 
 
 

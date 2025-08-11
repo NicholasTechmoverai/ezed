@@ -75,7 +75,7 @@ export const useDownloadStore = defineStore('downloadStore', {
      * @param {object} prg - Progress object containing download metadata
      */
     async update_download_progress(prg = {}) {
-      console.log("updating", prg)
+      // console.log("updating", prg)
       if (!prg?.id) {
         console.warn('Invalid progress update', prg);
         return;
@@ -187,7 +187,10 @@ export const useDownloadStore = defineStore('downloadStore', {
       try {
         const response = await fetch(`${B_URL}/${endpoint}`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${this.userStore?.token?.token || ""}`
+          },
           body: JSON.stringify({ itag, id, url, start_byte: startByte, format, ext })
         });
 
@@ -278,7 +281,7 @@ export const useDownloadStore = defineStore('downloadStore', {
           this.pendingMerges[id][downloadType] = { blob, status: 'completed' };
           await this.checkAndMergeDownloads(id);
         } else {
-          await this.finalizeDownload(id,blob, downloadedSize, this.onGoingDownloads[id].filename, this.onGoingDownloads[id].extension, isAudio);
+          await this.finalizeDownload(id, blob, downloadedSize, this.onGoingDownloads[id].filename, this.onGoingDownloads[id].extension, isAudio);
         }
 
       } catch (error) {
@@ -303,7 +306,7 @@ export const useDownloadStore = defineStore('downloadStore', {
           id
         );
 
-        await this.finalizeDownload(id, mergedBlob,this.onGoingDownloads[id].downloadedSize, this.onGoingDownloads[id].filename, this.onGoingDownloads[id].extension, false);
+        await this.finalizeDownload(id, mergedBlob, this.onGoingDownloads[id].downloadedSize, this.onGoingDownloads[id].filename, this.onGoingDownloads[id].extension, false);
         delete this.pendingMerges[id];
       } catch (error) {
         console.error("Merge failed:", error);
@@ -312,7 +315,7 @@ export const useDownloadStore = defineStore('downloadStore', {
     },
 
     /** Finalizes download and triggers file save */
-    async finalizeDownload(id, blob,downloadedSize, filename, extension, isAudio) {
+    async finalizeDownload(id, blob, downloadedSize, filename, extension, isAudio) {
       // Update state and persist
       this.update_download_progress({
         id,

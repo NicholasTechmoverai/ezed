@@ -1,6 +1,6 @@
 <template>
     <n-layout-sider bordered collapse-mode="width" :collapsed-width="64" :width="240" v-model:collapsed="collapsed"
-      show-trigger class="h-screen fixed">
+      show-trigger class="h-screen fixed z-9999">
       <div class="p-4 flex items-center gap-2 justify-center border-b border-gray-200 dark:border-gray-700">
         <img :src="SITEMETA.logo" :alt="SITEMETA.name || 'Site Logo'"
           class="w-10 h-8 rounded-xl shadow-lg dark:shadow-gray-800/50 transition-all duration-300"
@@ -61,7 +61,7 @@ const menuOptions = [
   },
   {
     label: 'Playlists',
-    key: 'playlists',
+    key: 'list',
     icon: FolderOpenOutline
   },
   {
@@ -100,13 +100,12 @@ const expandIcon = () => {
 }
 
 function handleMenuSelect(key) {
-          stateStore.setLoadingBar(0)
-
-  router.push(`${key}`); 
+  stateStore.setLoadingBar(0)
+  router.push(`/h/${key}`); 
 }
 </script>
 
-<style scoped>
+<!-- <style scoped>
 .n-layout-sider {
   height: 100vh;
   overflow-y: auto;
@@ -145,4 +144,4 @@ function handleMenuSelect(key) {
 .n-menu :deep(.n-menu-item-content:hover) {
   background-color: rgba(99, 102, 241, 0.05);
 }
-</style>
+</style> -->

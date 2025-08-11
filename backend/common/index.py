@@ -1,4 +1,4 @@
-import platform,os,re
+import platform, os, re
 import sys
 import asyncio
 
@@ -60,7 +60,7 @@ class StreamDownloader:
             "x.com": self._handle_twitter,
         }
 
-    async def download_stream(self, url: str, itag: str = "best", start_byte: int = 0):
+    async def download_stream(self, url: str, itag: str = "best", start_byte: int = 0,token:str=None):
         """
         Universal streaming downloader for multiple platforms
         """
@@ -71,7 +71,7 @@ class StreamDownloader:
             if not handler:
                 raise UnsupportedPlatformError(f"Unsupported platform: {url}")
 
-            async for chunk in handler(url, itag, start_byte):
+            async for chunk in handler(url, itag, start_byte, [], token=token):
                 yield chunk
 
         except Exception as e:
@@ -94,8 +94,11 @@ class StreamDownloader:
         return "unknown"
 
     async def _handle_youtube(
-        self, url: str, itag: str, start_byte: int, failed_itags=None
+        self, url: str, itag: str, start_byte: int, failed_itags=None, token=None
     ):
+        if not isinstance(failed_itags, list):
+            failed_itags = []
+
         if failed_itags is None:
             failed_itags = []
         try:
@@ -128,8 +131,11 @@ class StreamDownloader:
                     yield chunk
 
         except Exception as e:
+            from app import notifications_namespace
+
             if "Requested format is not available" in str(e):
                 logger.error("YouTube streaming failed for itag %s: %s", itag, str(e))
+
                 failed_itags.append(itag)
 
                 # AUDIO FALLBACK
@@ -137,8 +143,13 @@ class StreamDownloader:
                     for trial_itag in audio_formats:
                         if trial_itag not in failed_itags:
                             logger.info("Retrying with audio itag %s", trial_itag)
+                            await notifications_namespace.trigger_notification({
+                                "room": str(token),
+                                "message": f"Requested format not available ,retrying with audio itag {trial_itag}",
+                                "messageType": "error",
+                            })
                             async for chunk in self._handle_youtube(
-                                url, trial_itag, start_byte, failed_itags
+                                url, trial_itag, start_byte, failed_itags,token
                             ):
                                 yield chunk
                             return
@@ -163,7 +174,11 @@ class StreamDownloader:
                             # If we're stepping to a lower resolution, skip remaining formats of previous one
                             if res < current_res:
                                 logger.info("Stepping down to %sp fallback", res)
-
+                                await notifications_namespace.trigger_notification({
+                                    "room": str(token),
+                                    "message": f"Requested format not available, Stepping down to {res}",
+                                    "messageType": "error",
+                                })
                             for trial_itag in video_formats[res]:
                                 if trial_itag in failed_itags:
                                     continue
@@ -171,13 +186,24 @@ class StreamDownloader:
                                 logger.info(
                                     "Retrying with %sp (itag %s)", res, trial_itag
                                 )
+                                await notifications_namespace.trigger_notification({
+                                    "room": str(token),
+                                    "message": f"Requested format not available ,retrying with {res} {trial_itag}",
+                                    "messageType": "error",
+                                })
                                 try:
                                     async for chunk in self._handle_youtube(
-                                        url, trial_itag, start_byte, failed_itags
+                                        url, trial_itag, start_byte, failed_itags,token
                                     ):
                                         yield chunk
                                     return  # Success
+                                
                                 except Exception as retry_err:
+                                    await notifications_namespace.trigger_notification({
+                                        "room": str(token),
+                                        "message": f"Download faled with {trial_itag} {res}",
+                                        "messageType": "error",
+                                    })
                                     logger.error(
                                         "Failed with itag %s (%sp): %s",
                                         trial_itag,
@@ -187,96 +213,22 @@ class StreamDownloader:
                                     failed_itags.append(trial_itag)
 
                 logger.error("All fallback formats failed for %s", url)
+                await notifications_namespace.trigger_notification({
+                    "room": str(token),
+                    "message": f"Download faled!!, All fallback formats failed for {url}",
+                    "messageType": "error",
+                })
 
             else:
                 logger.error("Streaming YouTube failed: %s", str(e))
+                await notifications_namespace.trigger_notification({
+                    "room": str(token),
+                    "message": f"Download failed{str(e)[:30]}",
+                    "messageType": "error",
+                })
 
-    # async def _handle_youtube(self, url: str, itag: str, start_byte: int, timeout: int = 30, failed_itags=None):
-    #     """YouTube streaming handler with retry + resolution fallback."""
-    #     if failed_itags is None:
-    #         failed_itags = []
 
-    #     try:
-    #         ydl_opts = {
-    #             'format': itag,
-    #             'noplaylist': True,
-    #             'quiet': True,
-    #             'extract_flat': False,
-    #         }
-
-    #         # Remove playlist identifiers for cleaner URL
-    #         url = url.split('?list')[0].split('&list')[0]
-
-    #         loop = asyncio.get_event_loop()
-    #         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-    #             info = await loop.run_in_executor(None, lambda: ydl.extract_info(url, download=False))
-    #             media_url = next(
-    #                 (fmt['url'] for fmt in info.get('formats', [])
-    #                 if str(fmt.get('format_id')) == str(itag)),
-    #                 None
-    #             )
-
-    #             if not media_url:
-    #                 available = [f['format_id'] for f in info.get('formats', [])]
-    #                 raise ValueError(f"Format {itag} not available. Existing formats: {available}")
-
-    #             async for chunk in self._stream_from_url(media_url, start_byte):
-    #                 yield chunk
-
-    #     except Exception as e:
-    #         if "Requested format is not available" in str(e):
-    #             logger.error("YouTube streaming failed for itag %s: %s", itag, str(e))
-    #             failed_itags.append(itag)
-
-    #             # AUDIO FALLBACK
-    #             if itag in audio_formats:
-    #                 for trial_itag in audio_formats:
-    #                     if trial_itag not in failed_itags:
-    #                         logger.info("Retrying with audio itag %s", trial_itag)
-    #                         async for chunk in self._handle_youtube(url, trial_itag, start_byte, timeout, failed_itags):
-    #                             yield chunk
-    #                         return
-
-    #             # VIDEO FALLBACK WITH RESOLUTION STEP-DOWN
-    #             else:
-    #                 # Find current resolution
-    #                 current_res = None
-    #                 for res, formats in video_formats.items():
-    #                     if itag in formats:
-    #                         current_res = res
-    #                         break
-
-    #                 if current_res is not None:
-    #                     # Create list of resolutions from current downwards
-    #                     resolutions_to_try = sorted(
-    #                         [r for r in video_formats.keys() if r <= current_res],
-    #                         reverse=True
-    #                     )
-
-    #                     for res in resolutions_to_try:
-    #                         # If we're stepping to a lower resolution, skip remaining formats of previous one
-    #                         if res < current_res:
-    #                             logger.info("Stepping down to %sp fallback", res)
-
-    #                         for trial_itag in video_formats[res]:
-    #                             if trial_itag in failed_itags:
-    #                                 continue
-
-    #                             logger.info("Retrying with %sp (itag %s)", res, trial_itag)
-    #                             try:
-    #                                 async for chunk in self._handle_youtube(url, trial_itag, start_byte, timeout, failed_itags):
-    #                                     yield chunk
-    #                                 return  # Success
-    #                             except Exception as retry_err:
-    #                                 logger.error("Failed with itag %s (%sp): %s", trial_itag, res, retry_err)
-    #                                 failed_itags.append(trial_itag)
-
-    #             logger.error("All fallback formats failed for %s", url)
-
-    #         else:
-    #             logger.error("Streaming YouTube failed: %s", str(e))
-
-    async def _handle_instagram(self, url: str, itag: str, start_byte: int):
+    async def _handle_instagram(self, url: str, itag: str, start_byte: int ,ailed_itags=None, token=None):
         """Instagram streaming handler"""
         ydl_opts = {
             "format": "best",
@@ -295,7 +247,7 @@ class StreamDownloader:
             async for chunk in self._stream_from_url(info["url"], start_byte):
                 yield chunk
 
-    async def _handle_tiktok(self, url: str, itag: str, start_byte: int):
+    async def _handle_tiktok(self, url: str, itag: str, start_byte: int,ailed_itags=None, token=None):
         """TikTok streaming handler"""
         ydl_opts = {
             "format": "best",
@@ -314,7 +266,7 @@ class StreamDownloader:
             async for chunk in self._stream_from_url(info["url"], start_byte):
                 yield chunk
 
-    async def _handle_facebook(self, url: str, itag: str, start_byte: int):
+    async def _handle_facebook(self, url: str, itag: str, start_byte: int,ailed_itags=None, token=None):
         """Facebook streaming handler"""
         ydl_opts = {
             "format": "best",
@@ -333,7 +285,7 @@ class StreamDownloader:
             async for chunk in self._stream_from_url(info["url"], start_byte):
                 yield chunk
 
-    async def _handle_twitter(self, url: str, itag: str, start_byte: int):
+    async def _handle_twitter(self, url: str, itag: str, start_byte: int,ailed_itags=None, token=None):
         """Twitter/X streaming handler"""
         ydl_opts = {
             "format": "best",
@@ -529,11 +481,11 @@ class StreamMeta:
         try:
             if itag and "+" in itag:
                 itag = itag.split("+", 1)[0]
-                
+
             if itag in audio_formats:
-                itag = "234"    
+                itag = "234"
             else:
-                itag ="18"
+                itag = "18"
 
             ydl_opts = {
                 "quiet": True,
@@ -548,7 +500,10 @@ class StreamMeta:
 
             info = await self._extract_info(url, ydl_opts)
 
-            filename = info.get("filename") or f'{info.get("title", "unknown")}.{info.get("ext", "mp4")}'
+            filename = (
+                info.get("filename")
+                or f"{info.get('title', 'unknown')}.{info.get('ext', 'mp4')}"
+            )
             filesize = info.get("filesize") or info.get("filesize_approx") or 0
 
             return {
@@ -567,3 +522,88 @@ class StreamMeta:
             # For now, return an empty dict or error info
             return {"error": str(e), "url": url, "itag": itag}
 
+
+# async def _handle_youtube(self, url: str, itag: str, start_byte: int, timeout: int = 30, failed_itags=None):
+    #     """YouTube streaming handler with retry + resolution fallback."""
+    #     if failed_itags is None:
+    #         failed_itags = []
+
+    #     try:
+    #         ydl_opts = {
+    #             'format': itag,
+    #             'noplaylist': True,
+    #             'quiet': True,
+    #             'extract_flat': False,
+    #         }
+
+    #         # Remove playlist identifiers for cleaner URL
+    #         url = url.split('?list')[0].split('&list')[0]
+
+    #         loop = asyncio.get_event_loop()
+    #         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+    #             info = await loop.run_in_executor(None, lambda: ydl.extract_info(url, download=False))
+    #             media_url = next(
+    #                 (fmt['url'] for fmt in info.get('formats', [])
+    #                 if str(fmt.get('format_id')) == str(itag)),
+    #                 None
+    #             )
+
+    #             if not media_url:
+    #                 available = [f['format_id'] for f in info.get('formats', [])]
+    #                 raise ValueError(f"Format {itag} not available. Existing formats: {available}")
+
+    #             async for chunk in self._stream_from_url(media_url, start_byte):
+    #                 yield chunk
+
+    #     except Exception as e:
+    #         if "Requested format is not available" in str(e):
+    #             logger.error("YouTube streaming failed for itag %s: %s", itag, str(e))
+    #             failed_itags.append(itag)
+
+    #             # AUDIO FALLBACK
+    #             if itag in audio_formats:
+    #                 for trial_itag in audio_formats:
+    #                     if trial_itag not in failed_itags:
+    #                         logger.info("Retrying with audio itag %s", trial_itag)
+    #                         async for chunk in self._handle_youtube(url, trial_itag, start_byte, timeout, failed_itags):
+    #                             yield chunk
+    #                         return
+
+    #             # VIDEO FALLBACK WITH RESOLUTION STEP-DOWN
+    #             else:
+    #                 # Find current resolution
+    #                 current_res = None
+    #                 for res, formats in video_formats.items():
+    #                     if itag in formats:
+    #                         current_res = res
+    #                         break
+
+    #                 if current_res is not None:
+    #                     # Create list of resolutions from current downwards
+    #                     resolutions_to_try = sorted(
+    #                         [r for r in video_formats.keys() if r <= current_res],
+    #                         reverse=True
+    #                     )
+
+    #                     for res in resolutions_to_try:
+    #                         # If we're stepping to a lower resolution, skip remaining formats of previous one
+    #                         if res < current_res:
+    #                             logger.info("Stepping down to %sp fallback", res)
+
+    #                         for trial_itag in video_formats[res]:
+    #                             if trial_itag in failed_itags:
+    #                                 continue
+
+    #                             logger.info("Retrying with %sp (itag %s)", res, trial_itag)
+    #                             try:
+    #                                 async for chunk in self._handle_youtube(url, trial_itag, start_byte, timeout, failed_itags):
+    #                                     yield chunk
+    #                                 return  # Success
+    #                             except Exception as retry_err:
+    #                                 logger.error("Failed with itag %s (%sp): %s", trial_itag, res, retry_err)
+    #                                 failed_itags.append(trial_itag)
+
+    #             logger.error("All fallback formats failed for %s", url)
+
+    #         else:
+    #             logger.error("Streaming YouTube failed: %s", str(e))

@@ -13,16 +13,6 @@ export const SITEMETA = {
     description: "Download any  intresting music and videos effortlessly on all social media platforms. One simple share is all it takes to get it installed on your device — fast, easy, and social!"
 }
 
-
-export const ENDPOINTS = {
-    AUTH_WITH_GOOGLE: `${BASE_URL}/api/login/google`,
-    MANUAL_LOGIN: `${BASE_URL}/api/login`,
-    SIGN_UP: `${BASE_URL}/api/signup`,
-    SEND_EMAIL_RESET_CODES: `${BASE_URL}/api/send_email_reset_codes`,
-    VERIFY_CODES: `${BASE_URL}/api/verify_reset_codes`,
-    RESET_PASSWORD: `${BASE_URL}/api/reset_email_password`,
-}
-
 export const FILE_PROGRESS = {
     PROCESSING: 'processing',
     STARTING: "starting",
