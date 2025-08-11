@@ -5,7 +5,12 @@
     <div v-if="loading" class="text-gray-500">Loading shared content...</div>
 
     <div v-else>
-      <div v-if="shareData.text">
+      <div v-if="shareData.title" class="mb-4">
+        <h2 class="font-semibold">Title:</h2>
+        <p class="bg-gray-100 p-2 rounded">{{ shareData.title }}</p>
+      </div>
+
+      <div v-if="shareData.text" class="mb-4">
         <h2 class="font-semibold">Text:</h2>
         <p class="bg-gray-100 p-2 rounded">{{ shareData.text }}</p>
       </div>
@@ -33,13 +38,8 @@ import { useRouter } from 'vue-router'
 
 const router = useRouter()
 const loading = ref(true)
-const shareData = ref({
-  text: '',
-  url: '',
-  title: ''
-})
+const shareData = ref({ title: '', text: '', url: '' })
 
-// Open IndexedDB helper (same as sw.js)
 function openDB() {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open('share-db', 1)
@@ -54,12 +54,10 @@ function openDB() {
   })
 }
 
-// Get latest share data from IndexedDB
 async function getLatestShareData() {
   const db = await openDB()
   const tx = db.transaction('share-store', 'readonly')
   const store = tx.objectStore('share-store')
-
   return new Promise((resolve, reject) => {
     const request = store.getAll()
     request.onsuccess = () => {
@@ -71,26 +69,28 @@ async function getLatestShareData() {
 }
 
 onMounted(async () => {
-  console.log('Share page mounted, loading share data from IndexedDB...');
   try {
-    const data = await getLatestShareData();
-    if (data) {
-      console.log('Loaded shared data:', data);
-      shareData.value = data;
+    // 1. Try GET params first
+    const params = new URLSearchParams(window.location.search)
+    const title = params.get('title')
+    const text = params.get('text')
+    const url = params.get('url')
+
+    if (title || text || url) {
+      shareData.value = { title, text, url }
     } else {
-      console.log('No shared data found');
+      // 2. Fallback to IndexedDB
+      const data = await getLatestShareData()
+      if (data) shareData.value = data
     }
   } catch (e) {
-    console.error('Failed to load share data:', e);
+    console.error('Failed to load share data:', e)
   } finally {
-    loading.value = false;
+    loading.value = false
   }
-});
+})
 
-async function handleDone() {
-  console.log('Done button clicked, navigating home');
-  router.push('/h'); // or '/' or wherever you want
+function handleDone() {
+  router.push('/') // redirect after done
 }
-
-
 </script>
