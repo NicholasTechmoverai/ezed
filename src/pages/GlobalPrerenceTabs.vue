@@ -4,7 +4,7 @@
             <n-dropdown :options="languageOptions" trigger="click" @select="onSelectLanguage">
                 <n-button quaternary class="flex flex-row items-center gap-2">
                     <span :class="`fi fi-${selectedLanguage.flag}`"></span>
-                    <span class="text-gray-700 dark:text-white">
+                    <span v-if="!isMobile" class="text-gray-700 dark:text-white">
                         {{ selectedLanguage.label }}
                     </span>
                 </n-button>
@@ -27,7 +27,8 @@ import { computed, ref, watch } from 'vue'
 import { useUserStore } from '../store/userStore'
 import { MoonOutline, SunnyOutline } from '@vicons/ionicons5'
 import { h } from 'vue'
-
+import { useIsMobile } from '../reusables'
+const isMobile = useIsMobile()
 const userStore = useUserStore()
 const isDark = ref(userStore.theme === 'dark')
 

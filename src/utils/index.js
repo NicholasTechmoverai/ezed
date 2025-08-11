@@ -43,3 +43,62 @@ export function extractYouTubeID(url) {
     }
     return url
 }
+
+import {
+  NavigateOutline,
+  PauseOutline,
+  CloseCircleOutline,
+  DownloadOutline,
+  SpeedometerOutline,
+  TimeOutline,
+  CheckmarkOutline,
+  BanSharp
+} from '@vicons/ionicons5'
+
+export const STATUS_CONFIG = {
+  starting: {
+    message: 'Starting',
+    icon: NavigateOutline,
+    type: 'info'
+  },
+  processing: {
+    message: 'Processing',
+    icon: SpeedometerOutline,   // indicates “working/processing” well
+    type: 'info'
+  },
+  active: {
+    message: 'Downloading',
+    icon: DownloadOutline,      // more intuitive than Play for download
+    type: 'info'
+  },
+  merging: {
+    message: 'Merging',
+    icon: TimeOutline,          // suggests “waiting” or “in progress”
+    type: 'info'
+  },
+  paused: {
+    message: 'Paused',
+    icon: PauseOutline,
+    type: 'warning'
+  },
+  interrupted: {
+    message: 'Interrupted',
+    icon: BanSharp,
+    type: 'error'
+  },
+  error: {
+    message: 'Error',
+    icon: CloseCircleOutline,
+    type: 'error'
+  },
+  completed: {
+    message: 'Completed',
+    icon: CheckmarkOutline,
+    type: 'success'
+  },
+  default: {
+    message: 'Ready',
+    icon: DownloadOutline,      // Ready for download, keep as is
+    type: 'default'
+  }
+}

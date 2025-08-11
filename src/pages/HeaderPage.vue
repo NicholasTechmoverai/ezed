@@ -3,16 +3,18 @@
     <n-space justify="space-between" align="center">
       <div class="flex flex-row justify-center items-center">
         <div v-if="isMobile">
-        <logo />
-
+          <Logo :showName="false" :rounded="3" :size="2" />
         </div>
-        <span class="text-xl text-gray-500 opacity-80">/</span>
-        <n-button class="opacity-80" size="tiny" secondary @click="openTab(activePage.key)">
-          <n-icon>
-            <component :is="activePage.icon" />
-          </n-icon>
-          {{ activePage.label }}
-        </n-button>
+        <div v-for="act in activePage" :key="act.key" class="flex items-center gap-0">
+          <n-divider vertical />
+          <n-button class="opacity-80" size="tiny" secondary @click="openTab(act.key)">
+            <n-icon>
+              <component :is="act.icon" />
+            </n-icon>
+            <span class="hidden sm:inline-block">{{ act.label }}</span>
+          </n-button>
+        </div>
+
         <div>
 
         </div>
@@ -69,10 +71,18 @@ const isMobile = useIsMobile()
 const activePage = computed(() => {
   const segments = route.path.split('/')
   const match = allSites.find(s => s.key === segments[2])
-  return match || {
-    label: 'Main',
-    icon: BriefcaseOutline,
+  if (!match) {
+    return [{
+      label: 'Home',
+      key: 'home',
+      icon: BriefcaseOutline
+    }]
   }
+  return [{
+    label: 'Home',
+    icon: BriefcaseOutline,
+    key: "home"
+  }, match]
 })
 
 watch(() => route.path, (newPath) => {

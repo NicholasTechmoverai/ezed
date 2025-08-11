@@ -39,11 +39,9 @@ export const openTab = (tab) => {
 
 //   const currentTab = route.path.split('/')[2] || route.params?.child
 
-//   if (currentTab === tab) {
-//     router.go(0)
-//   } else {
-//     router.push(`/h/${tab}`)
-//   }
+  if (tab === "home") {
+    router.push(`/h`)
+  } else {
     router.push(`/h/${tab}`)
-
+  }
 }

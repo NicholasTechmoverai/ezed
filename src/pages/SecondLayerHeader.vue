@@ -5,10 +5,7 @@
                 <div class="relative p-1">
                     <div
                         class="p-4 flex items-center gap-2 justify-center border-b border-gray-200 dark:border-gray-700">
-                        <img :src="SITEMETA.logo" :alt="SITEMETA.name || 'Site Logo'"
-                            class="w-10 h-8 rounded-xl shadow-lg dark:shadow-gray-800/50 transition-all duration-300" />
-                        <n-text v-if="!collapsed" strong class="text-2xl font-bold"
-                            :class="{ color: SITEMETA.theme_color }">{{ SITEMETA.name }}</n-text>
+                        <Logo :showName="!collapsed" :rounded="2" :size="2" />
                     </div>
                     <n-space vertical size="medium" class="p-4">
                         <n-button v-for="(site, index) in allSites" :key="index" size="medium" block
@@ -53,6 +50,7 @@ import { useRoute } from 'vue-router'
 import { useStateStore } from '../store/stateStore'
 import { SITEMETA } from '../utils'
 import { useIsMobile } from '../reusables'
+import Logo from './Logo.vue'
 const showSearch = ref(false)
 const route = useRoute()
 const stateStore = useStateStore()

@@ -1,15 +1,15 @@
 <template>
-    <n-layout-sider bordered collapse-mode="width" :collapsed-width="64" :width="240" v-model:collapsed="collapsed"
-      show-trigger class="h-screen fixed z-9999">
-      <div class="p-4 flex items-center gap-2 justify-center border-b border-gray-200 dark:border-gray-700">
-        <img :src="SITEMETA.logo" :alt="SITEMETA.name || 'Site Logo'"
-          class="w-10 h-8 rounded-xl shadow-lg dark:shadow-gray-800/50 transition-all duration-300"
-        />
-        <n-text v-if="!collapsed" strong class="text-2xl font-bold" :class="{color:SITEMETA.theme_color}">{{SITEMETA.name}}</n-text>
-      </div>
-      <n-menu :collapsed="collapsed" :collapsed-width="64" :collapsed-icon-size="22" :options="menuOptions"
-        :render-label="renderMenuLabel" :render-icon="renderMenuIcon" :expand-icon="expandIcon"    @select="handleMenuSelect"  class="mt-2" />
-    </n-layout-sider>
+  <n-layout-sider bordered collapse-mode="width" :collapsed-width="64" :width="240" v-model:collapsed="collapsed"
+    show-trigger class="h-screen fixed z-9999">
+    <div class="p-4 flex items-center gap-2 justify-center border-b border-gray-200 dark:border-gray-700">
+      <Logo :showName="!collapsed" :rounded="2" :size="2" />
+    </div>
+    <n-menu :collapsed="collapsed" :collapsed-width="64" :collapsed-icon-size="22" :options="menuOptions"
+        :default-expanded-keys="defaultExpandedKeys"
+
+      :render-label="renderMenuLabel" :render-icon="renderMenuIcon" :expand-icon="expandIcon" @select="handleMenuSelect"
+      class="mt-2" />
+  </n-layout-sider>
 
 </template>
 
@@ -38,10 +38,11 @@ import { SITEMETA } from '../utils'
 import { allSites } from '../composables'
 import router from '../router'
 import { useStateStore } from '../store/stateStore'
+import Logo from './Logo.vue'
 const stateStore = useStateStore()
 
 const collapsed = ref(false)
-
+const defaultExpandedKeys = ref(['download_video'])
 const menuOptions = [
   {
     label: 'Ongoing Downloads',
@@ -101,7 +102,7 @@ const expandIcon = () => {
 
 function handleMenuSelect(key) {
   stateStore.setLoadingBar(0)
-  router.push(`/h/${key}`); 
+  router.push(`/h/${key}`);
 }
 </script>
 

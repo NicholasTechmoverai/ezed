@@ -253,50 +253,8 @@ import { getFile } from '../db/download'
 import defaultThumbnail from "../assets/defaultThumbnail.png"
 import { useMessage } from 'naive-ui'
 import router from '../router'
+import { STATUS_CONFIG } from '../utils'
 
-// Constants
-const STATUS_CONFIG = {
-  processing: {
-    message: 'Processing',
-    icon: PlayOutline,
-    type: 'info'
-  },
-  active: {
-    message: 'Downloading',
-    icon: PlayOutline,
-    type: 'info'
-  },
-  downloading: {
-    message: 'Downloading',
-    icon: PlayOutline,
-    type: 'info'
-  },
-  merging: {
-    message: 'Merging',
-    icon: PlayOutline,
-    type: 'info'
-  },
-  paused: {
-    message: 'Paused',
-    icon: PauseOutline,
-    type: 'warning'
-  },
-  error: {
-    message: 'Error',
-    icon: CloseCircleOutline,
-    type: 'error'
-  },
-  completed: {
-    message: 'Completed',
-    icon: CheckmarkOutline,
-    type: 'success'
-  },
-  default: {
-    message: 'Ready',
-    icon: DownloadOutline,
-    type: 'default'
-  }
-}
 
 // Props
 const props = defineProps({
