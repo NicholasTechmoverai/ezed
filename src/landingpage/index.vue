@@ -12,7 +12,8 @@
          dark:bg-[linear-gradient(to_bottom,_black,_rgb(55,65,81)_40%,_rgba(var(--theme-rgb),0.5)_70%,_var(--theme))] relative">
 
 
-        <div id="pwa-install-prompt" class="hidden fixed bottom-0 w-full p-4 bg-[var(--theme)] text-white text-center z-1000">
+        <div id="pwa-install-prompt"
+            class="hidden fixed bottom-0 w-full p-4 bg-[var(--theme)] text-white text-center z-1000">
             <button id="install-btn" class="px-4 py-2 bg-white text-[var(--theme)] rounded-lg font-medium">Install
                 App</button>
             <button id="dismiss-btn" class="ml-4 px-4 py-2 rounded-lg font-medium">Dismiss</button>
@@ -89,7 +90,7 @@
 
                 <!-- Download Buttons -->
                 <div class="flex flex-col sm:flex-row gap-4 mt-8 transition-all duration-300">
-                    <n-button type="primary" size="large"
+                    <n-button type="primary" size="large" @click="HandlePwaInstall"
                         class="bg-[var(--theme)] hover:bg-[var(--theme-light)] transition-all shadow-lg hover:shadow-xl hover:-translate-y-1">
                         <template #icon>
                             <n-icon>
@@ -99,7 +100,7 @@
                         <span class="font-medium">{{ tm('download.a') }}</span>
                     </n-button>
 
-                    <n-button type="primary" size="large" ghost
+                    <n-button type="primary" size="large" ghost @click="HandlePwaInstall"
                         class="text-[var(--theme)] border-[var(--theme)] hover:bg-[var(--theme)]/10 transition-all hover:-translate-y-1">
                         <template #icon>
                             <n-icon>
@@ -109,7 +110,7 @@
                         <span class="font-medium">{{ tm('download.w') }}</span>
                     </n-button>
 
-                    <n-button type="primary" size="large" ghost
+                    <n-button type="primary" size="large" ghost @click="HandlePwaInstall"
                         class="text-[var(--theme)] border-[var(--theme)] hover:bg-[var(--theme)]/10 transition-all hover:-translate-y-1">
                         <template #icon>
                             <n-icon>
@@ -165,14 +166,16 @@ import ResourcesPage from "./ResourcesPage.vue";
 import FooterPage from "./FooterPage.vue";
 const { t } = useI18n()
 const { tm } = useI18n()
-import { ref, onMounted, onUnmounted,computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { useDialog, useMessage } from 'naive-ui'
 
+const dialog = useDialog()
 const scrolled = ref(false)
 const isHovered = ref(false)
 const navLinks = computed(() => [
-  { to: '/h', text: tm('navButtons')[0] },
-  { to: '/h/downloads', text: tm('navButtons')[1] },
-  { to: '/about', text: tm('navButtons')[2] }
+    { to: '/h', text: tm('navButtons')[0] },
+    { to: '/h/downloads', text: tm('navButtons')[1] },
+    { to: '/about', text: tm('navButtons')[2] }
 ])
 
 const hoveredLink = ref(null);
@@ -210,8 +213,10 @@ window.addEventListener("beforeinstallprompt", (e) => {
     document.getElementById("install-btn").addEventListener("click", () => {
         prompt.classList.add("hidden");
         deferredPrompt.prompt();
-        deferredPrompt.userChoice.then(() => {
-            deferredPrompt = null;
+        deferredPrompt.userChoice.then((n) => {
+            if (n.outcome === 'accepted') {
+                deferredPrompt = null;
+            }
         });
     });
 
@@ -219,6 +224,24 @@ window.addEventListener("beforeinstallprompt", (e) => {
         prompt.classList.add("hidden");
     });
 });
+
+const HandlePwaInstall = () => {
+    if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then((choiceResult) => {
+            if (choiceResult.outcome === 'accepted') {
+                deferredPrompt = null;
+            }
+        });
+    }else{
+        dialog.warning({
+            title: 'PWA Install',
+            content: 'PWA installation is not available at this time. Please try again later.',
+            positiveText: 'OK',
+            closable: true
+        })
+    }
+}
 </script>
 
 <style>

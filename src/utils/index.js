@@ -44,6 +44,8 @@ export function extractYouTubeID(url) {
     return url
 }
 
+
+
 import {
   NavigateOutline,
   PauseOutline,
@@ -55,50 +57,67 @@ import {
   BanSharp
 } from '@vicons/ionicons5'
 
+
 export const STATUS_CONFIG = {
   starting: {
     message: 'Starting',
     icon: NavigateOutline,
-    type: 'info'
+    type: 'info',
+    color: '#3b82f6' // Blue
   },
   processing: {
     message: 'Processing',
-    icon: SpeedometerOutline,   // indicates “working/processing” well
-    type: 'info'
+    icon: SpeedometerOutline,
+    type: 'info',
+    color: '#3b82f6' // Blue
   },
-  active: {
+  downloading: {
     message: 'Downloading',
-    icon: DownloadOutline,      // more intuitive than Play for download
-    type: 'info'
+    icon: DownloadOutline,
+    type: 'info',
+    color: '#3b82f6' // Blue
   },
   merging: {
     message: 'Merging',
-    icon: TimeOutline,          // suggests “waiting” or “in progress”
-    type: 'info'
+    icon: TimeOutline,
+    type: 'info',
+    color: '#2563eb' // Darker blue
+  },
+  merge_failed: {
+    message: 'Merge Failed',
+    icon: CloseCircleOutline,
+    type: 'error',
+    color: '#dc2626' // Red
   },
   paused: {
     message: 'Paused',
     icon: PauseOutline,
-    type: 'warning'
+    type: 'warning',
+    color: '#ca8a04' // Amber/Orange
   },
   interrupted: {
     message: 'Interrupted',
     icon: BanSharp,
-    type: 'error'
+    type: 'error',
+    color: '#b91c1c' // Dark red
   },
   error: {
     message: 'Error',
     icon: CloseCircleOutline,
-    type: 'error'
+    type: 'error',
+    color: '#ef4444' // Bright red
   },
   completed: {
     message: 'Completed',
     icon: CheckmarkOutline,
-    type: 'success'
+    type: 'success',
+    color: '#16a34a' // Green
   },
   default: {
     message: 'Ready',
-    icon: DownloadOutline,      // Ready for download, keep as is
-    type: 'default'
+    icon: DownloadOutline,
+    type: 'default',
+    color: '#6b7280' // Gray
   }
 }
+

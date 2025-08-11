@@ -77,6 +77,7 @@ import { useDownloadStore } from '../store/downloadStore'
 import { saveFile } from '../db/download'
 import { useMessage } from 'naive-ui'
 import { normalizeYouTubeUrl } from '../utils/others'
+import { STATUS_CONFIG } from '../utils'
 
 const stateStore = useStateStore()
 const route = useRoute()
@@ -170,8 +171,9 @@ async function handleDownload() {
     error.value = null
     const id = generateUUID()
     downloadStore.onGoingDownloads[id] = {
-      status: "starting",
-      progress: 0
+      status: STATUS_CONFIG.starting.message,
+      progress: 0,
+      key:abb_r.value,
     }
 
 

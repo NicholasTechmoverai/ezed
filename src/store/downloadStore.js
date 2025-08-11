@@ -5,9 +5,10 @@ import { clearBlob, saveFile } from "../db/download.js"
 import { useStateStore } from './stateStore.js';
 import { useFfmpeg } from '../utils/useFfmpeg.js';
 import axios from 'axios';
-import { audioItags } from '../utils/index.js';
+import { audioItags, STATUS_CONFIG } from '../utils/index.js';
 import { suggestFilename } from '../utils/others.js';
 import { timestamp } from '@vueuse/core';
+import { getSiteKeyFromURL } from '../composables/index.js';
 
 export const useDownloadStore = defineStore('downloadStore', {
   state: () => ({
@@ -112,7 +113,11 @@ export const useDownloadStore = defineStore('downloadStore', {
           stopTime: prg.status === 'completed' ? Date.now() : null,
           hasAudio: isAudio || undefined,
           duration: prg.duration || undefined,
-          format: prg.format || undefined
+          format: prg.format || undefined,
+          key: prg.key || undefined,
+          itag: prg.itag || undefined,
+          downloadName: prg.downloadName || undefined,
+          islist: prg.islist || false,
         });
       } catch (err) {
         console.error('Persist failed:', err);
@@ -142,18 +147,23 @@ export const useDownloadStore = defineStore('downloadStore', {
       if (!url) return console.error("Missing URL");
       let filename = suggestFilename(url);
       let extension = ext || (audioItags.includes(itag) ? "mp4a" : "mp4");
-
+      const abb_r = getSiteKeyFromURL(url);
 
       this.update_download_progress({
         id,
-        status: "starting",
+        status: STATUS_CONFIG.starting.message,
         progress: 0,
         filename,
         extension,
-        startTime: Date.now()
+        startTime: Date.now(),
+        key: abb_r,
+        url: url,
+        itag: itag,
+        format: format || extension,
+        islist: false
       })
 
-      this.stateStore.addTask({ id, name: `${filename}`, url: `/h/inst/${id}` });
+      this.stateStore.addTask({ id, name: `${filename}`, url: `/h/${abb_r}/${id}` });
 
       // Handle combined formats (video+audio)
       const [videoTag, audioTag] = await this.split_combined_itag(itag);
@@ -259,7 +269,7 @@ export const useDownloadStore = defineStore('downloadStore', {
             this.update_download_progress({
               id,
               url,
-              status: 'downloading',
+              status: STATUS_CONFIG.downloading.message,
               progress,
               downloadSpeedMbps: this.formatSpeed(avgSpeed),
               eta: this.formatETA(remainingSec),
@@ -278,7 +288,7 @@ export const useDownloadStore = defineStore('downloadStore', {
         // Finalize download
         const blob = new Blob(chunks);
         if (this.pendingMerges[id]) {
-          this.pendingMerges[id][downloadType] = { blob, status: 'completed' };
+          this.pendingMerges[id][downloadType] = { blob, status: STATUS_CONFI.completed.message };
           await this.checkAndMergeDownloads(id);
         } else {
           await this.finalizeDownload(id, blob, downloadedSize, this.onGoingDownloads[id].filename, this.onGoingDownloads[id].extension, isAudio);
@@ -297,7 +307,7 @@ export const useDownloadStore = defineStore('downloadStore', {
       if (!pending || !pending.video?.blob || !pending.audio?.blob) return;
 
       try {
-        this.onGoingDownloads[id].status = "merging";
+        this.onGoingDownloads[id].status =  STATUS_CONFIG.merging.message ;
 
         // Use WebWorker for non-blocking merging
         const mergedBlob = await this.useFfmpeg.mergeVideoAudio(
@@ -310,7 +320,7 @@ export const useDownloadStore = defineStore('downloadStore', {
         delete this.pendingMerges[id];
       } catch (error) {
         console.error("Merge failed:", error);
-        this.onGoingDownloads[id].status = "merge_failed";
+        this.onGoingDownloads[id].status =  STATUS_CONFIG.merge_failed.message;
       }
     },
 
@@ -319,7 +329,7 @@ export const useDownloadStore = defineStore('downloadStore', {
       // Update state and persist
       this.update_download_progress({
         id,
-        status: 'completed',
+        status:  STATUS_CONFIG.completed.message ,
         progress: 100,
         downloadSpeedMbps: "0 Mb/s",
         eta: '00:00',
@@ -332,7 +342,7 @@ export const useDownloadStore = defineStore('downloadStore', {
           url: this.onGoingDownloads[id]?.url || '',
           filename,
           [isAudio ? 'audioBlob' : 'videoBlob']: blob,
-          status: 'completed',
+          status:  STATUS_CONFIG.completed.message ,
           thumbnail: this.onGoingDownloads[id]?.thumbnail || '',
           downloadedSize: blob.size
         });

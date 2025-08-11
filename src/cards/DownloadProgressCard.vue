@@ -1,23 +1,18 @@
 <template>
-  <div class="min-h-screen p-4">
+  <div class="min-h-screen p-4 flex items-center justify-center">
     <!-- Skeleton Loading -->
     <transition name="fade-slide" mode="out-in">
-      <n-card v-if="loading" hoverable :bordered="false" class="max-w-xs mx-auto transition-all duration-300"
+      <n-card v-if="loading" hoverable :bordered="false" class="max-w-sm w-full mx-auto transition-all duration-300"
         :content-style="{ padding: 0 }">
         <n-space vertical>
-          <n-skeleton height="200px" width="100%" />
-          <n-space vertical :size="12" style="padding: 16px">
-            <n-skeleton text width="60%" />
-            <n-skeleton text width="40%" />
-            <n-space justify="space-between">
-              <n-skeleton text width="30%" />
-              <n-skeleton text width="30%" />
-            </n-space>
-            <n-skeleton height="8px" width="100%" />
+          <n-skeleton height="220px" width="100%" />
+          <n-space vertical :size="16" style="padding: 20px">
+            <n-skeleton text width="70%" size="medium" />
             <n-space justify="space-between">
               <n-skeleton text width="40%" />
-              <n-skeleton text width="40%" />
+              <n-skeleton text width="30%" />
             </n-space>
+            <n-skeleton height="10px" width="100%" :sharp="false" />
             <n-space justify="center">
               <n-skeleton circle size="medium" />
               <n-skeleton circle size="medium" />
@@ -29,62 +24,71 @@
 
       <!-- Actual Content -->
       <n-card v-else-if="localFileData || !loading" hoverable :bordered="false"
-        class="max-w-xs mx-auto min-w-[300px] transition-all duration-300 hover:shadow-xl dark:hover:shadow-lg dark:hover:shadow-neutral-800"
+        class="max-w-sm w-full mx-auto transition-all duration-300 hover:shadow-xl dark:hover:shadow-lg dark:hover:shadow-neutral-800/50 rounded-2xl overflow-hidden"
         :content-style="{ padding: 0 }">
-        <div class="flex flex-col p-4 space-y-4">
+        <div class="flex flex-col">
           <!-- Thumbnail with progress overlay -->
-          <div class="relative w-full max-h-[350px] rounded-lg overflow-hidden group cursor-pointer"
+          <div class="relative w-full h-56 bg-gradient-to-r from-cyan-500 to-blue-500 group cursor-pointer"
             @click="toggleLoader">
+            <div class="absolute inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center transition-opacity"
+              :class="isLoaderActive ? 'opacity-100' : 'opacity-0'">
+              <transition name="zoom" mode="out-in">
+                <div v-if="downloadStatus === STATUS_CONFIG.merging.message" key="merging" class="text-center p-4">
+                  <n-progress type="circle" :percentage="mergeProgress" status="info" size="large"
+                    :stroke-width="8" :gap-position="'bottom'">
+                    <span class="text-white text-sm font-medium">{{ mergeProgress }}%</span>
+                  </n-progress>
+                  <p class="mt-3 text-white font-medium">Merging files...</p>
+                </div>
+                <div v-else-if="downloadStatus === STATUS_CONFIG.starting.message || 
+                                downloadStatus === STATUS_CONFIG.processing.message" 
+                     key="processing" class="text-center">
+                  <n-spin size="large" :stroke-width="12" />
+                  <p class="mt-3 text-white font-medium">Preparing download...</p>
+                </div>
+                <div v-else key="download-progress" class="text-center">
+                  <n-progress type="circle" :percentage="averageDownloadPercentage" status="info" size="large"
+                    :stroke-width="8" :gap-position="'bottom'">
+                    <span class="text-white font-medium">{{ averageDownloadPercentage }}%</span>
+                  </n-progress>
+                  <div class="mt-3 text-white flex items-center justify-center space-x-2">
+                    <n-icon :component="SpeedometerOutline" size="18" />
+                    <span>{{ downloadSpeed }}</span>
+                    <n-divider vertical />
+                    <n-icon :component="TimeOutline" size="18" />
+                    <span>{{ timeRemaining }}</span>
+                  </div>
+                </div>
+              </transition>
+            </div>
+
             <n-image :src="fileThumbnail" :fallback-src="defaultThumbnail"
-              class="w-full h-full min-w-[200px]  min-h-[200px] object-cover transition-transform duration-300 group-hover:scale-105"
+              class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
               preview-disabled>
               <template #error>
-                <div class="w-full h-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center">
-                  <n-icon size="48" :component="ImageOutline" class="text-neutral-400" />
+                <div class="w-full h-full bg-gradient-to-br from-indigo-500 to-purple-600 flex flex-col items-center justify-center p-4">
+                  <n-icon size="60" :component="ImageOutline" class="text-white/80" />
+                  <p class="mt-3 text-white text-center font-medium text-lg">{{ fileName || 'Media File' }}</p>
+                  <p class="text-white/80 text-sm mt-1">{{ fileExtension }} • {{ formattedFileSize }}</p>
                 </div>
               </template>
             </n-image>
 
-            <!-- Progress overlay -->
-            <transition name="fade">
-              <div v-if="isLoaderActive || downloadStatus === 'merging'"
-                class="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-                <transition name="slide-up" mode="out-in">
-                  <div v-if="downloadStatus === 'merging'" key="merging">
-                    <n-progress type="circle" :percentage="mergeProgress" :color="progressColor"
-                      :rail-color="progressRailColor">
-                      <span class="text-white text-sm font-medium">{{ mergeProgress }}% merging</span>
-                    </n-progress>
-                  </div>
-                  <div v-else key="download-progress" class="flex items-center justify-center">
-                    <n-progress type="circle" :percentage="averageDownloadPercentage" :color="progressColor"
-                      :rail-color="progressRailColor" :stroke-width="6" :gap-degree="90" :show-indicator="false"
-                      class="scale-90" />
-                    <span class="absolute text-white font-medium text-sm">
-                      {{ averageDownloadPercentage }}%
-                    </span>
-                  </div>
-                </transition>
-              </div>
-            </transition>
-
             <!-- Status badge -->
-            <transition name="slide-up">
-              <n-tag :type="statusTagType" round
-                class="flex items-center justify-center absolute bottom-3 left-1/2 transform -translate-x-1/2 shadow-md bg-gray-500/30 backdrop-blur-3">
-                <template #icon>
-                  <n-icon :component="statusIcon" />
-                </template>
-                {{ statusMessage }}
-              </n-tag>
-            </transition>
+            <n-tag :type="statusTagType" round
+              class="flex items-center justify-center absolute top-3 left-3 shadow-lg bg-white/20 backdrop-blur-md border-0">
+              <template #icon>
+                <n-icon :component="statusIcon" />
+              </template>
+              {{ statusMessage }}
+            </n-tag>
 
             <n-tooltip trigger="hover">
               <template #trigger>
-                <n-button type="default" round size="small" @click.stop="showMeta"
-                  class="absolute top-2 right-2 shadow-md bg-gray-500/30 backdrop-blur-3">
+                <n-button type="default" circle size="small" @click.stop="showMeta"
+                  class="absolute top-3 right-3 shadow-lg bg-white/20 backdrop-blur-md border-0">
                   <template #icon>
-                    <n-icon :component="InformationCircle" />
+                    <n-icon :component="InformationCircle" class="text-white" />
                   </template>
                 </n-button>
               </template>
@@ -93,133 +97,138 @@
           </div>
 
           <!-- File info -->
-          <div class="space-y-1">
-            <n-ellipsis class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
-              {{ fileName || 'Untitled file' }}
-            </n-ellipsis>
-            <div class="flex justify-between items-center text-sm text-neutral-500 dark:text-neutral-400">
-              <span>{{ formattedFileSize }} • {{ fileExtension }}</span>
-              <span v-if="remainingSize > 0">{{ formatFileSize(remainingSize) }} left</span>
-            </div>
-          </div>
-
-          <!-- Progress bar -->
-          <transition-expand>
-            <div v-if="showDownloadProgress" class="space-y-2">
-              <n-progress type="line" :percentage="downloadPercentage" :color="progressColor"
-                :rail-color="progressRailColor" :height="8" :border-radius="4" processing />
-              <div class="flex justify-between text-xs text-neutral-500 dark:text-neutral-400">
-                <div class="flex items-center space-x-1">
-                  <n-icon :component="SpeedometerOutline" size="14" />
-                  <span>{{ downloadSpeed }}</span>
+          <div class="p-5 space-y-3">
+            <div class="space-y-2">
+              <n-ellipsis class="text-xl font-bold text-gray-800 dark:text-white">
+                {{ fileName || 'Untitled file' }}
+              </n-ellipsis>
+              <div class="flex justify-between items-center text-sm text-gray-500 dark:text-gray-400">
+                <div class="flex items-center space-x-2">
+                  <n-tag size="small" :bordered="false" type="info" round>
+                    {{ fileExtension }}
+                  </n-tag>
+                  <span>{{ formattedFileSize }}</span>
                 </div>
-                <div class="flex items-center space-x-1">
-                  <n-icon :component="TimeOutline" size="14" />
-                  <span>{{ timeRemaining }}</span>
-                </div>
+                <span v-if="remainingSize > 0" class="text-amber-600 dark:text-amber-400 font-medium">
+                  {{ formatFileSize(remainingSize) }} left
+                </span>
               </div>
             </div>
-          </transition-expand>
 
-          <transition-expand>
-            <div v-if="hasAudio && showDownloadProgress">
-              <n-progress type="line" :percentage="audioDownloadPercentage" indicator-placement="inside" processing
-                :color="progressColor" :rail-color="progressRailColor">
-                <span class="text-xs">audio {{ audioDownloadPercentage }}%</span>
-              </n-progress>
+            <!-- Progress bars -->
+            <transition-expand>
+              <div v-if="showDownloadProgress" class="space-y-4 pt-2">
+                <div>
+                  <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
+                    <span>Video</span>
+                    <span>{{ downloadPercentage }}%</span>
+                  </div>
+                  <n-progress type="line" :percentage="downloadPercentage" status="info"
+                    :height="10" :border-radius="5" processing />
+                </div>
+
+                <div v-if="hasAudio">
+                  <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
+                    <span>Audio</span>
+                    <span>{{ audioDownloadPercentage }}%</span>
+                  </div>
+                  <n-progress type="line" :percentage="audioDownloadPercentage" status="success"
+                    :height="10" :border-radius="5" processing />
+                </div>
+              </div>
+            </transition-expand>
+
+            <!-- Action buttons -->
+            <div class="pt-3">
+              <transition name="fade" mode="out-in">
+                <template v-if="!showDownloadProgress">
+                  <n-space vertical>
+                    <n-button type="primary" size="large" @click="startDownload" class="shadow-md">
+                      <template #icon>
+                        <n-icon>
+                          <RefreshOutline />
+                        </n-icon>
+                      </template>
+                      Download File
+                    </n-button>
+                    <n-button type="tertiary" size="large" @click="shareDownload">
+                      <template #icon>
+                        <n-icon>
+                          <ShareSocialOutline />
+                        </n-icon>
+                      </template>
+                      Share Download
+                    </n-button>
+                  </n-space>
+                </template>
+
+                <template v-else>
+                  <n-space justify="space-between">
+                    <n-tooltip trigger="hover">
+                      <template #trigger>
+                        <n-button circle size="large" :type="downloadStatus === 'paused' ? 'primary' : 'default'"
+                          @click="downloadStatus === 'paused' ? resumeDownload() : pauseDownload()">
+                          <template #icon>
+                            <n-icon>
+                              <PlayOutline v-if="downloadStatus === 'paused'" />
+                              <PauseOutline v-else />
+                            </n-icon>
+                          </template>
+                        </n-button>
+                      </template>
+                      {{ downloadStatus === 'paused' ? 'Resume' : 'Pause' }}
+                    </n-tooltip>
+
+                    <n-popconfirm :positive-text="downloadStatus === 'completed' ? 'Delete' : 'Cancel'"
+                      @positive-click="cancelDownload">
+                      <template #trigger>
+                        <n-button circle size="large" type="error" secondary>
+                          <template #icon>
+                            <n-icon>
+                              <TrashOutline />
+                            </n-icon>
+                          </template>
+                        </n-button>
+                      </template>
+                      {{ downloadStatus === 'completed'
+                        ? 'Are you sure you want to delete this download?'
+                        : 'Are you sure you want to cancel this download?' }}
+                    </n-popconfirm>
+
+                    <n-tooltip trigger="hover">
+                      <template #trigger>
+                        <n-button circle size="large" type="default" secondary @click="toggleLoader">
+                          <template #icon>
+                            <n-icon>
+                              <EyeOffOutline v-if="isLoaderActive" />
+                              <EyeOutline v-else />
+                            </n-icon>
+                          </template>
+                        </n-button>
+                      </template>
+                      {{ isLoaderActive ? 'Hide' : 'Show' }} Progress
+                    </n-tooltip>
+                    
+                    <n-button circle size="large" type="info" secondary @click="showMeta">
+                      <template #icon>
+                        <n-icon>
+                          <InformationCircle />
+                        </n-icon>
+                      </template>
+                    </n-button>
+                  </n-space>
+                </template>
+              </transition>
             </div>
-          </transition-expand>
-
-          <!-- Action buttons -->
-          <div class="pt-2 flex flex-col space-y-2">
-            <transition name="fade" mode="out-in">
-              <template v-if="!showDownloadProgress">
-                <n-button-group>
-                  <n-button type="primary" secondary @click="startDownload" class="shadow-sm">
-                    <template #icon>
-                      <n-icon>
-                        <RefreshOutline />
-                      </n-icon>
-                    </template>
-                    Retry
-                  </n-button>
-                  <n-button type="default" secondary @click="shareDownload" class="shadow-sm">
-                    <template #icon>
-                      <n-icon>
-                        <ShareSocialOutline />
-                      </n-icon>
-                    </template>
-                    Share
-                  </n-button>
-                </n-button-group>
-              </template>
-
-              <template v-else>
-                <n-space justify="center">
-                  <!-- Pause/Resume Button -->
-                  <n-tooltip trigger="hover">
-                    <template #trigger>
-                      <n-button circle :type="downloadStatus === 'paused' ? 'primary' : 'default'"
-                        @click="downloadStatus === 'paused' ? resumeDownload() : pauseDownload()">
-                        <template #icon>
-                          <n-icon>
-                            <PlayOutline v-if="downloadStatus === 'paused'" />
-                            <PauseOutline v-else />
-                          </n-icon>
-                        </template>
-                      </n-button>
-                    </template>
-                    {{ downloadStatus === 'paused' ? 'Resume' : 'Pause' }}
-                  </n-tooltip>
-
-                  <!-- Cancel Button -->
-                  <n-popconfirm :positive-text="downloadStatus === 'completed' ? 'Delete' : 'Cancel'"
-                    :negative-text="'Cancel'" @positive-click="cancelDownload">
-                    <template #trigger>
-                      <n-tooltip trigger="hover">
-                        <template #trigger>
-                          <n-button circle type="error">
-                            <template #icon>
-                              <n-icon>
-                                <TrashOutline />
-                              </n-icon>
-                            </template>
-                          </n-button>
-                        </template>
-                        {{ downloadStatus === 'completed' ? 'Delete' : 'Cancel' }}
-                      </n-tooltip>
-                    </template>
-                    {{ downloadStatus === 'completed'
-                      ? 'Are you sure you want to delete this download?'
-                      : 'Are you sure you want to cancel this download?' }}
-                  </n-popconfirm>
-
-                  <!-- Show/Hide Progress -->
-                  <n-tooltip trigger="hover">
-                    <template #trigger>
-                      <n-button circle type="default" @click="toggleLoader">
-                        <template #icon>
-                          <n-icon>
-                            <EyeOffOutline v-if="isLoaderActive" />
-                            <EyeOutline v-else />
-                          </n-icon>
-                        </template>
-                      </n-button>
-                    </template>
-                    {{ isLoaderActive ? 'Hide' : 'Show' }} Progress
-                  </n-tooltip>
-                </n-space>
-              </template>
-            </transition>
           </div>
         </div>
       </n-card>
 
       <!-- Not Found State -->
-      <n-card v-else class="max-w-xs mx-auto">
+      <n-card v-else class="max-w-sm w-full rounded-2xl overflow-hidden">
         <n-result status="404" title="Download Not Found" description="The requested download could not be found">
           <template #footer>
-            <n-button type="primary" @click="router.back()">
+            <n-button type="primary" size="large" @click="router.back()" class="mt-4">
               Go Back
             </n-button>
           </template>
@@ -228,6 +237,70 @@
     </transition>
   </div>
 </template>
+
+
+<style scoped>
+/* Custom transitions */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.slide-up-enter-active,
+.slide-up-leave-active {
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.slide-up-enter-from,
+.slide-up-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.zoom-enter-active,
+.zoom-leave-active {
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.zoom-enter-from,
+.zoom-leave-to {
+  opacity: 0;
+  transform: scale(0.9);
+}
+
+/* Custom expand transition */
+.expand-enter-active,
+.expand-leave-active {
+  transition: height 0.3s ease, opacity 0.3s ease, margin 0.3s ease;
+  overflow: hidden;
+}
+
+.expand-enter-from,
+.expand-leave-to {
+  height: 0;
+  opacity: 0;
+  margin: 0;
+}
+
+/* Gradient background for image fallback */
+.bg-gradient-to-br {
+  background-image: linear-gradient(to bottom right, var(--tw-gradient-stops));
+}
+
+.from-indigo-500 {
+  --tw-gradient-from: #6366f1;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(99, 102, 241, 0));
+}
+
+.to-purple-600 {
+  --tw-gradient-to: #7e22ce;
+}
+</style>
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
@@ -254,6 +327,7 @@ import defaultThumbnail from "../assets/defaultThumbnail.png"
 import { useMessage } from 'naive-ui'
 import router from '../router'
 import { STATUS_CONFIG } from '../utils'
+import { useUserStore } from '../store/userStore'
 
 
 // Props
@@ -374,11 +448,11 @@ const fetchFileData = async () => {
 const toggleLoader = () => {
   isLoaderActive.value = !isLoaderActive.value
 }
-
+const userStore = useUserStore()
 const startDownload = async () => {
   try {
     message.loading('Starting download...')
-    await downloadStore.download_file('inst/Nick/download', props.id, localFileData.value?.url)
+    await downloadStore.download_file(`${localFileData.value.key || 'inst'}/${userStore.user?.username}/download`, props.id, localFileData.value?.url,localFileData.value.itag, localFileData.value.format)
     message.success('Download started successfully')
   } catch (error) {
     message.error('Failed to start download')

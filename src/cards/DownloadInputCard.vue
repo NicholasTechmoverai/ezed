@@ -49,7 +49,7 @@ import { useDownloadStore } from '../store/downloadStore'
 import { saveFile } from '../db/download'
 import { useMessage } from 'naive-ui'
 import { suggestFilename } from '../utils/others'
-import { audioItags } from '../utils'
+import { audioItags, STATUS_CONFIG } from '../utils'
 
 const props = defineProps({
   d_type: {
@@ -96,7 +96,7 @@ async function handleDownload() {
     const extension = "mp4";
 
     downloadStore.onGoingDownloads[id] = {
-      status: "starting",
+      status:STATUS_CONFIG.starting.message,
       progress: 0,
       filename: filename,
       extension: extension

@@ -8,7 +8,7 @@
                     <img :src="SITEMETA.logo" :alt="SITEMETA.name || 'Site Logo'"
                         class="w-30 h-30  rounded-2xl shadow-lg dark:shadow-gray-800/50 transition-all hover:scale-105" />
                     <div class="flex flex-col  gap-4 mt-8 transition-all duration-300">
-                        <n-button type="primary" size="large"
+                        <n-button type="primary" size="large" @click="HandlePwaInstall"
                             class="bg-[var(--theme)] hover:bg-[var(--theme-light)] transition-all shadow-lg hover:shadow-xl hover:-translate-y-1">
                             <template #icon>
                                 <n-icon>
@@ -18,7 +18,7 @@
                             <span class="font-medium">{{tm('download.a')}}</span>
                         </n-button>
 
-                        <n-button type="primary" size="large" ghost
+                        <n-button type="primary" size="large" ghost @click="HandlePwaInstall"
                             class="text-[var(--theme)] border-[var(--theme)] hover:bg-[var(--theme)]/10 transition-all hover:-translate-y-1">
                             <template #icon>
                                 <n-icon>
@@ -28,7 +28,7 @@
                             <span class="font-medium">{{tm('download.w')}}</span>
                         </n-button>
 
-                        <n-button type="primary" size="large" ghost
+                        <n-button type="primary" size="large" ghost @click="HandlePwaInstall"
                             class="text-[var(--theme)] border-[var(--theme)] hover:bg-[var(--theme)]/10 transition-all hover:-translate-y-1">
                             <template #icon>
                                 <n-icon>
@@ -52,7 +52,47 @@ import { LogoWindows, LogoApple, LogoGooglePlaystore } from "@vicons/ionicons5";
 import phone_layout from "../assets/PhoneFrame.png"
 import { SITEMETA } from "../utils";
 import { useI18n } from 'vue-i18n'
+import { useDialog } from "naive-ui";
 
 const { tm } = useI18n()
+const dialog = useDialog();
+let deferredPrompt;
+window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    const prompt = document.getElementById("pwa-install-prompt");
+    prompt.classList.remove("hidden");
 
+    document.getElementById("install-btn").addEventListener("click", () => {
+        prompt.classList.add("hidden");
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then((n) => {
+            if (n.outcome === 'accepted') {
+                deferredPrompt = null;
+            }
+        });
+    });
+
+    document.getElementById("dismiss-btn").addEventListener("click", () => {
+        prompt.classList.add("hidden");
+    });
+});
+
+const HandlePwaInstall = () => {
+    if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then((choiceResult) => {
+            if (choiceResult.outcome === 'accepted') {
+                deferredPrompt = null;
+            }
+        });
+    }else{
+        dialog.warning({
+            title: 'PWA Install',
+            content: 'PWA installation is not available at this time. Please try again later.',
+            positiveText: 'OK',
+            closable: true
+        })
+    }
+}
 </script>

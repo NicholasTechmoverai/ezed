@@ -30,7 +30,20 @@ export const allSites = [
     }
 ]
 
+export const getSiteByKey = (key) => {
+    return allSites.find(site => site.key === key) || null
+}
 
+export const getSiteKeyFromURL = (url) => {
+  try {
+    const hostname = new URL(url).hostname.toLowerCase(); // e.g. "youtu.be"
+    return allSites.find(site =>
+      site.label.toLowerCase().startsWith(hostname) || hostname.startsWith(site.label.toLowerCase())
+    )?.key || null;
+  } catch {
+    return null;
+  }
+}
 
 
 export const openTab = (tab) => {
