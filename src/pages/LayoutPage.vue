@@ -14,13 +14,13 @@
     >
       <n-layout-header
         bordered
-        class="flex flex-col p-3 fixed top-0  z-30"
+        class="flex flex-col p-3 sticky top-0  z-30"
       >
         <HeaderPage />
         <SecondLayerHeader />
       </n-layout-header>
 
-      <n-layout-content class="flex-1 overflow-auto mt-[100px]">
+      <n-layout-content class="flex-1 overflow-auto">
         <Transition
           enter-active-class="transition-transform transition-opacity duration-300 ease-out"
           enter-from-class="translate-x-4 opacity-0"

@@ -1,5 +1,5 @@
 <template>
-  <header class="app-header">
+  <header class="relative w-full">
     <n-space justify="space-between" align="center">
       <div class="flex flex-row justify-center items-center">
         <div v-if="isMobile">
