@@ -4,7 +4,7 @@
       <n-card v-if="loading" hoverable :bordered="false" class="max-w-sm w-full mx-auto transition-all duration-300"
         :content-style="{ padding: 0 }">
         <n-space vertical>
-          <n-skeleton height="220px" width="100%" class="min-w-[300px]"/>
+          <n-skeleton height="220px" width="100%" class="min-w-[300px]" />
           <n-space vertical :size="16" style="padding: 20px">
             <n-skeleton text width="70%" size="medium" />
             <n-space justify="space-between">
@@ -26,22 +26,23 @@
         class="max-w-sm w-full mx-auto transition-all duration-300 hover:shadow-xl dark:hover:shadow-lg dark:hover:shadow-neutral-800/50 overflow-hidden"
         :content-style="{ padding: 0 }">
         <div class="flex flex-col">
-          
-          <div class="relative w-full h-56 bg-gradient-to-r from-cyan-500 to-blue-500 group cursor-pointer  overflow-hidden "
+
+          <div
+            class="relative w-full h-56 bg-gradient-to-r from-cyan-500 to-blue-500 group cursor-pointer  overflow-hidden "
             @click="toggleLoader">
-            <div class="absolute inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center transition-opacity z-50"
+            <div
+              class="absolute inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center transition-opacity z-50"
               :class="isLoaderActive ? 'opacity-100' : 'opacity-0'">
               <transition name="zoom" mode="out-in">
                 <div v-if="downloadStatus === STATUS_CONFIG.merging.key" key="merging" class="text-center p-4">
-                  <n-progress type="circle" :percentage="mergeProgress" status="info" size="large"
-                    :stroke-width="8" :gap-position="'bottom'">
+                  <n-progress type="circle" :percentage="mergeProgress" status="info" size="large" :stroke-width="8"
+                    :gap-position="'bottom'">
                     <span class="text-white text-sm font-medium">{{ mergeProgress }}%</span>
                   </n-progress>
                   <p class="mt-3 text-white font-medium">Merging files...</p>
                 </div>
-                <div v-else-if="downloadStatus === STATUS_CONFIG.starting.key || 
-                                downloadStatus === STATUS_CONFIG.processing.key" 
-                     key="processing" class="text-center">
+                <div v-else-if="downloadStatus === STATUS_CONFIG.starting.key ||
+                  downloadStatus === STATUS_CONFIG.processing.key" key="processing" class="text-center">
                   <n-spin size="large" :stroke-width="12" />
                   <p class="mt-3 text-white font-medium">Preparing download...</p>
                 </div>
@@ -61,11 +62,12 @@
               </transition>
             </div>
 
-        <n-image :src="fileThumbnail" :fallback-src="defaultThumbnail" width="100%"
+            <n-image :src="fileThumbnail" :fallback-src="defaultThumbnail" width="100%"
               class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110  z-30"
               preview-disabled>
               <template #error>
-                <div class="w-full h-full bg-gradient-to-br from-indigo-500 to-purple-600 flex flex-col items-center justify-center p-4">
+                <div
+                  class="w-full h-full bg-gradient-to-br from-indigo-500 to-purple-600 flex flex-col items-center justify-center p-4">
                   <n-icon size="60" :component="ImageOutline" class="text-white/80" />
                   <p class="mt-3 text-white text-center font-medium text-lg">{{ fileName || 'Media File' }}</p>
                   <p class="text-white/80 text-sm mt-1">{{ fileExtension }} • {{ formattedFileSize }}</p>
@@ -82,7 +84,7 @@
               {{ downloadStatus }}
             </n-tag>
 
-            <n-tooltip trigger="hover" >
+            <n-tooltip trigger="hover">
               <template #trigger>
                 <n-button type="default" circle size="small" @click.stop="showMeta"
                   class="absolute top-3 right-3 shadow-lg bg-white/20 backdrop-blur-md border-0 z-60">
@@ -122,8 +124,8 @@
                     <span>Video</span>
                     <span>{{ downloadPercentage }}%</span>
                   </div>
-                  <n-progress type="line" :percentage="downloadPercentage" status="info"
-                    :height="10" :border-radius="5" processing />
+                  <n-progress type="line" :percentage="downloadPercentage" status="info" :height="10" :border-radius="5"
+                    processing />
                 </div>
 
                 <div v-if="hasAudio">
@@ -131,8 +133,8 @@
                     <span>Audio</span>
                     <span>{{ audioDownloadPercentage }}%</span>
                   </div>
-                  <n-progress type="line" :percentage="audioDownloadPercentage" status="success"
-                    :height="10" :border-radius="5" processing />
+                  <n-progress type="line" :percentage="audioDownloadPercentage" status="success" :height="10"
+                    :border-radius="5" processing />
                 </div>
               </div>
             </transition-expand>
@@ -142,13 +144,9 @@
               <transition name="fade" mode="out-in">
                 <template v-if="!showDownloadProgress">
                   <n-space vertical>
-                    <n-button 
-                      type="primary" 
-                      size="large" 
-                      @click="startDownload" 
-                      class="shadow-md"
-                      :disabled="downloadStatus === 'completed'"
-                    >
+
+                    <n-button type="primary" size="large" @click="startDownload" class="shadow-md"
+                      :disabled="downloadStatus === 'completed'">
                       <template #icon>
                         <n-icon>
                           <DownloadOutline v-if="downloadStatus !== 'completed'" />
@@ -157,19 +155,26 @@
                       </template>
                       {{ downloadStatus === 'completed' ? 'Download Complete' : 'Download File' }}
                     </n-button>
-                    <n-button 
-                      type="tertiary" 
-                      size="large" 
-                      @click="shareDownload"
-                      :disabled="downloadStatus !== 'completed'"
-                    >
-                      <template #icon>
-                        <n-icon>
-                          <ShareSocialOutline />
-                        </n-icon>
-                      </template>
-                      Share Download
-                    </n-button>
+                    <n-space>
+                      <n-button type="tertiary" size="large" @click="shareDownload"
+                        :disabled="downloadStatus !== 'completed'">
+                        <template #icon>
+                          <n-icon>
+                            <ShareSocialOutline />
+                          </n-icon>
+                        </template>
+                        Share
+                      </n-button>
+                      <n-button type="tertiary" size="large" @click="startDownload" class="shadow-md">
+                        <template #icon>
+                          <n-icon>
+                            <RefreshOutline />
+                          </n-icon>
+                        </template>
+                        retry
+                      </n-button>
+                    </n-space>
+
                   </n-space>
                 </template>
 
@@ -177,12 +182,8 @@
                   <n-space justify="space-between">
                     <n-tooltip trigger="hover">
                       <template #trigger>
-                        <n-button 
-                          circle 
-                          size="large" 
-                          :type="downloadStatus === 'paused' ? 'primary' : 'default'"
-                          @click="downloadStatus === 'paused' ? resumeDownload() : pauseDownload()"
-                        >
+                        <n-button circle size="large" :type="downloadStatus === 'paused' ? 'primary' : 'default'"
+                          @click="downloadStatus === 'paused' ? resumeDownload() : pauseDownload()">
                           <template #icon>
                             <n-icon>
                               <PlayOutline v-if="downloadStatus === 'paused'" />
@@ -194,10 +195,8 @@
                       {{ downloadStatus === 'paused' ? 'Resume' : 'Pause' }}
                     </n-tooltip>
 
-                    <n-popconfirm 
-                      :positive-text="downloadStatus === 'completed' ? 'Delete' : 'Cancel'"
-                      @positive-click="cancelDownload"
-                    >
+                    <n-popconfirm :positive-text="downloadStatus === 'completed' ? 'Delete' : 'Cancel'"
+                      @positive-click="cancelDownload">
                       <template #trigger>
                         <n-button circle size="large" type="error" secondary>
                           <template #icon>
@@ -214,13 +213,7 @@
 
                     <n-tooltip trigger="hover">
                       <template #trigger>
-                        <n-button 
-                          circle 
-                          size="large" 
-                          type="default" 
-                          secondary 
-                          @click="toggleLoader"
-                        >
+                        <n-button circle size="large" type="default" secondary @click="toggleLoader">
                           <template #icon>
                             <n-icon>
                               <EyeOffOutline v-if="isLoaderActive" />
@@ -231,7 +224,7 @@
                       </template>
                       {{ isLoaderActive ? 'Hide' : 'Show' }} Progress
                     </n-tooltip>
-                    
+
                     <n-button circle size="large" type="info" secondary @click="showMeta">
                       <template #icon>
                         <n-icon>
@@ -324,7 +317,7 @@ const downloadStatus = computed(() => localFileData.value?.status || 'default')
 const statusTagType = computed(() => STATUS_CONFIG[downloadStatus.value]?.type || 'default')
 const statusIcon = computed(() => STATUS_CONFIG[downloadStatus.value]?.icon || null)
 const statusMessage = computed(() => STATUS_CONFIG[downloadStatus.value]?.message || 'Unknown')
-const showDownloadProgress = computed(() => ['active', 'paused', 'downloading','processing', 'merging'].includes(downloadStatus.value.toLowerCase()))
+const showDownloadProgress = computed(() => ['active', 'paused', 'downloading', 'processing', 'merging'].includes(downloadStatus.value.toLowerCase()))
 const progressColor = computed(() => {
   switch (downloadStatus.value) {
     case 'active': return themeVars.value.primaryColor
@@ -339,16 +332,28 @@ const progressRailColor = computed(() => changeColor('gray', { alpha: 0.2 }))
 
 // Download progress
 const averageDownloadPercentage = computed(() => {
-  if (!localFileData.value?.filesize) return 0
+  const fileData = localFileData.value;
+  if (!fileData || !fileData.filesize || fileData.filesize === 0) return 0;
 
   if (!hasAudio.value) {
-    return Math.min(100, Math.round((localFileData.value?.downloadedSize / localFileData.value?.filesize) * 100) || 0)
+    const downloadedSize = fileData.downloadedSize ?? 0;
+    const percentage = (downloadedSize / fileData.filesize) * 100;
+    return Math.min(100, Math.round(percentage));
   }
 
-  const videoProgress = localFileData.value.downloadedSize / localFileData.value.filesize
-  const audioProgress = localFileData.value.a_downloadedSize / localFileData.value.a_filesize
-  return Math.min(100, Math.round(((videoProgress + audioProgress) / 2) * 100))
-})
+  // For audio + video progress
+  const videoDownloaded = fileData.downloadedSize ?? 0;
+  const videoSize = fileData.filesize ?? 1; // fallback to 1 to avoid division by zero
+  const audioDownloaded = fileData.a_downloadedSize ?? 0;
+  const audioSize = fileData.a_filesize ?? 1;
+
+  const videoProgress = videoSize > 0 ? videoDownloaded / videoSize : 0;
+  const audioProgress = audioSize > 0 ? audioDownloaded / audioSize : 0;
+
+  const avgProgress = (videoProgress + audioProgress) / 2;
+  return Math.min(100, Math.round(avgProgress * 100));
+});
+
 
 const downloadPercentage = computed(() => {
   if (!localFileData.value?.filesize) return 0
@@ -411,7 +416,7 @@ const userStore = useUserStore()
 const startDownload = async () => {
   try {
     message.loading('Starting download...')
-    await downloadStore.download_file(`${localFileData.value.key || 'inst'}/${userStore.user?.username}/download`, props.id, localFileData.value?.url,localFileData.value.itag, localFileData.value.format)
+    await downloadStore.download_file(`${localFileData.value.key || 'inst'}/${userStore.user?.username}/download`, props.id, localFileData.value?.url, localFileData.value.itag, localFileData.value.format)
     message.success('Download started successfully')
   } catch (error) {
     message.error('Failed to start download')
