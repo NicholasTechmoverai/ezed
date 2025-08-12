@@ -16,7 +16,7 @@
 
 
       <n-card title="🎵 YouTube Downloader"
-        class="w-full max-w-xl shadow-lg rounded-xl transition-all duration-300 hover:shadow-xl" :bordered="false">
+        class="w-full max-w-xl shadow-lg  transition-all duration-300 hover:shadow-xl" :bordered="false">
         <div class="flex justify-between items-center mb-4">
           <n-text class="text-gray-600">Download mode:</n-text>
           <n-switch v-model:value="isMix" size="medium" :rail-style="railStyle" class="ml-2">

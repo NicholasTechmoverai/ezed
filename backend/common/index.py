@@ -14,6 +14,10 @@ import urllib.parse
 import subprocess
 from typing import AsyncGenerator, Optional, Tuple, List, Dict, Union
 import shutil
+import os
+import requests
+from pytube import Search
+
 
 
 def check_ffmpeg_available():
@@ -409,53 +413,51 @@ class StreamMeta:
 
         try:
             info = await self._extract_info(link, ydl_opts)
-            streams = await self._fetch_stream_details(info.get("formats", []))
+            duration = info.get("duration", 0) 
+
+            formats = [
+                f for f in info.get("formats", [])
+                if f.get("ext") == "webm" or (f.get("format_id") in audio_formats )
+            ]
+
+
+            streams = []
+            for f in formats:
+                filesize = (
+                    f.get("filesize") or
+                    f.get("filesize_approx") or
+                    None  # Avoid network fetch unless really needed
+                )
+                if filesize is None:
+                    filesize = await self._parse_clen_from_url(f.get("url"))
+
+                streams.append({
+                    "itag": f.get("format_id"),
+                    "ext": f.get("ext"),
+                    "resolution": f.get("resolution", "audio-only"),
+                    "video_codec": f.get("vcodec", "N/A"),
+                    "audio_codec": f.get("acodec", "N/A"),
+                    "vbr": f.get("vbr", 0),
+                    "abr": f.get("abr", 0),
+                    "size_mb": round((filesize or 0) / (1024 * 1024), 3),
+                })
 
             return {
                 "success": True,
-                "streams": streams,
+                "streams": streams[::-1],  # reverse order
                 "info": {
                     "title": info.get("title"),
                     "artist": info.get("uploader"),
                     "description": info.get("description"),
                     "views": info.get("view_count", 0),
-                    "url":link
+                    "duration_sec": duration,
+                    "url": link
                 },
             }
 
         except Exception as e:
             return {"success": False, "message": f"Error: {str(e)}"}
 
-    async def _fetch_stream_details(self, formats: List[Dict]) -> List[Dict]:
-        """Fetch details for all available stream formats."""
-        tasks = [self._get_stream_info(f) for f in formats]
-        return await asyncio.gather(*tasks)
-
-    async def _get_stream_info(self, stream_format: Dict) -> Dict:
-        """Extract detailed information about a single stream format."""
-        return {
-            "itag": stream_format["format_id"],
-            "ext": stream_format["ext"],
-            "resolution": stream_format.get("resolution", "audio-only"),
-            "video_codec": stream_format.get("vcodec", "N/A"),
-            "audio_codec": stream_format.get("acodec", "N/A"),
-            "vbr": stream_format.get("vbr", 0),
-            "abr": stream_format.get("abr", 0),
-            "size_mb": await self._get_file_size(stream_format),
-        }
-
-    async def _get_file_size(self, stream_format: Dict) -> float:
-        """Calculate file size in MB from stream format info."""
-        filesize = (
-            stream_format.get("filesize")
-            or stream_format.get("filesize_approx")
-            or await self._parse_clen_from_url(stream_format.get("url"))
-        )
-
-        if filesize is None:
-            return 0.0
-
-        return round(filesize / (1024 * 1024), 3)
 
     async def _parse_clen_from_url(self, url: str) -> Union[int, None]:
         """Parse content length from URL parameters if available."""
@@ -608,3 +610,106 @@ class StreamMeta:
 
     #         else:
     #             logger.error("Streaming YouTube failed: %s", str(e))
+    
+    
+    
+    
+
+class SearchHandler:
+    def __init__(self, api_key: str):
+        self.api_key = api_key
+        self.api_available = self.check_api_health()
+
+    def check_api_health(self) -> bool:
+        """Check if the YouTube API is working."""
+        url = "https://www.googleapis.com/youtube/v3/search"
+        params = {"part": "snippet", "q": "test", "maxResults": 1, "key": self.api_key}
+        try:
+            r = requests.get(url, params=params, timeout=5)
+            r.raise_for_status()
+            logger.info("✅ YouTube API is available.")
+            return True
+        except requests.exceptions.RequestException as e:
+            logger.warning(f"⚠️ YouTube API unavailable: {e}")
+            return False
+
+    async def search_pytube(self, query: str) -> List[Dict[str, str]]:
+        """Search YouTube using PyTube."""
+        try:
+            logger.info("🔍 Searching with PyTube...")
+            search = Search(query)
+            await asyncio.sleep(0)  # Yield to event loop (keeps it async-safe)
+            return [
+                {"title": v.title, "url": v.watch_url, "Stype": "youtube"}
+                for v in search.results
+            ]
+        except Exception as e:
+            logger.error(f"PyTube error: {e}")
+            return []
+
+    def search_api(self, query: str) -> List[Dict[str, str]]:
+        """Search YouTube using the API."""
+        url = "https://www.googleapis.com/youtube/v3/search"
+        params = {
+            "part": "snippet",
+            "q": query,
+            "type": "video",
+            "maxResults": 20,
+            "key": self.api_key,
+        }
+        try:
+            r = requests.get(url, params=params, timeout=5)
+            r.raise_for_status()
+            data = r.json()
+            return [
+                {
+                    "title": item["snippet"]["title"],
+                    "url": f'https://www.youtube.com/watch?v={item["id"]["videoId"]}',
+                    "Stype": "youtube"
+                }
+                for item in data.get("items", [])
+                if "videoId" in item.get("id", {})
+            ]
+        except requests.exceptions.RequestException as e:
+            logger.error(f"API error: {e}")
+            self.api_available = False
+            return []
+
+    async def search(self, query: str) -> List[Dict[str, str]]:
+        """Main search entry point — API first, then PyTube."""
+        if self.api_available:
+            results = self.search_api(query)
+            if results:
+                return results
+        return await self.search_pytube(query)
+
+
+# Example usage:
+# if __name__ == "__main__":
+#     api_key = os.getenv("YOUTUBE_API_KEY")
+#     sh = SearchHandler(api_key)
+#     results = asyncio.run(sh.search("Elley Duhé middle of the night"))
+#     print(results)
+
+
+import spotipy,json,os
+
+from spotipy.oauth2 import SpotifyClientCredentials
+client_id = os.getenv('SPOTIPY_CLIENT_ID')
+client_secret = os.getenv('SPOTIPY_CLIENT_SECRET')
+
+sp = spotipy.Spotify(auth_manager=SpotifyClientCredentials(client_id, client_secret))
+
+async def Search_suggestions_spotify(search):
+    try:
+        results = await asyncio.to_thread(sp.search, q=search, type="track", limit=10)
+        # print(results)
+        
+        suggestions = [
+            {"name": track['name'], "artist": track['artists'][0]['name'],"is_loal":False}
+            for track in results['tracks']['items']
+        ]
+        return suggestions
+    except Exception as e:
+        print(f"Error in Spotify search: {str(e)}")
+        return []

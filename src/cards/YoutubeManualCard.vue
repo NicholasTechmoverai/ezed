@@ -13,41 +13,57 @@
                 </n-drawer-content>
             </n-drawer>
 
-            <n-card title="Get Video Formats" class="w-full max-w-xl mt-4" :bordered="false">
-                <n-spin :show="isLoading" :description="loadingDescription">
-                    <n-space vertical :size="20">
-                        <n-input v-model:value="currentUrl" placeholder="Paste video URL..." clearable size="large"
-                            @keydown.enter="getFormats" class="input-focus">
-                            <template #prefix><n-icon :component="LinkOutline" /></template>
-                        </n-input>
+            <div class="flex flex-col sm:flex-row gap-4 sm:justify-start items-start w-full max-w-5xl">
 
-                        <n-button type="primary" :loading="isLoading" :disabled="!isValidUrl || isLoading"
-                            @click="getFormats" size="large" block>
-                            {{ isLoading ? 'Loading formats...' : 'Load formats' }}
-                        </n-button>
-                    </n-space>
-                </n-spin>
-            </n-card>
+                <!-- Left Panel: URL Input -->
+                <n-card title="Get Video Formats" class="w-full max-w-xl mt-4" :bordered="false">
+                    <n-spin :show="isLoading" :description="loadingDescription">
+                        <n-space vertical :size="20">
 
-            <Transition name="scale-fade">
-                <n-card v-if="videoInfo" title="Video Info" class="w-full max-w-xl mt-6 cursor-pointer"
-                    @click="openDrawer()">
-                    <n-space align="center">
-                        <n-image :src="videoInfo.thumbnail" width="160" height="50" fit="contain" class="rounded" />
-                        <n-space vertical :size="4">
-                            <template v-if="videoInfo?.status === 'loading'">
-                                <n-skeleton width="160" height="18" />
-                                <n-skeleton width="120" height="14" />
-                            </template>
-                            <template v-else>
-                                <n-text strong>{{ videoInfo.title }}</n-text>
-                                <n-text depth="2">{{ videoInfo.artist || 'Unknown artist' }}</n-text>
-                                <n-text depth="3">Views: {{ videoInfo.views || 'N/A' }}</n-text>
-                            </template>
+                            <!-- Input -->
+                            <n-input v-model:value="currentUrl" placeholder="Paste video URL..." clearable size="large"
+                                @keydown.enter="getFormats" class="input-focus">
+                                <template #prefix>
+                                    <n-icon :component="LinkOutline" />
+                                </template>
+                            </n-input>
+
+                            <!-- Button -->
+                            <n-button type="primary" :loading="isLoading" :disabled="!isValidUrl || isLoading"
+                                @click="getFormats" size="large" block>
+                                {{ isLoading ? 'Loading formats...' : 'Load formats' }}
+                            </n-button>
+
                         </n-space>
-                    </n-space>
+                    </n-spin>
                 </n-card>
-            </Transition>
+
+                <!-- Right Panel: Loaded Formats -->
+                <Transition name="scale-fade">
+                    <n-card v-if="Object.keys(AllVideoInfo).length" title="Loaded URL Formats"
+                        class="w-full min-w-[300px] sm:min-w-[350px] max-w-xl mt-6 sm:mt-4 cursor-pointer">
+                        <n-space vertical :size="8" class="w-full">
+                            <div v-for="([id, video]) in Object.entries(AllVideoInfo)" :key="id"
+                                class="flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg p-2 transition-colors duration-200"
+                                @click="router.push({ name: 'CustomConfig', query: { id } })">
+                                <n-spin :show="video.status === 'loading'">
+                                    <n-image :src="video.thumbnail || ''" width="100" height="56" fit="cover"
+                                        class="rounded shadow-sm bg-gray-200 dark:bg-gray-700" />
+                                </n-spin>
+                                <n-space vertical :size="4" class="flex-1 overflow-hidden">
+                                    <n-text strong>
+                                        <n-ellipsis>{{ video.title || video.url || id }}</n-ellipsis>
+                                    </n-text>
+                                    <n-text depth="2">{{ video.artist || 'Unknown Artist' }}</n-text>
+                                    <n-text depth="3">{{ video.duration ? prettyMs(video.duration) : '—' }}</n-text>
+                                </n-space>
+                            </div>
+                        </n-space>
+                    </n-card>
+                </Transition>
+
+            </div>
+
 
             <!-- MOBILE: bottom drawer -->
             <n-drawer v-if="isMobile" v-model:show="active_drawer" placement="bottom" :height="560" mask-closable
@@ -61,18 +77,37 @@
                     </template>
 
                     <template v-else>
+
                         <n-spin :show="downloading">
-                            <n-image v-if="videoInfo.thumbnail" :src="videoInfo.thumbnail" width="100%" height="120"
-                                fit="cover" class="mb-4 rounded" />
+                            <div class="flex flex-row gap-2 justify-center">
+                                <div>
+                                    <n-text strong><n-ellipsis style="max-width: 240px">{{ videoInfo?.title
+                                            }}</n-ellipsis></n-text>
+                                    <n-space>
+                                        <n-text depth="2">{{ videoInfo?.artist || 'Unknown artist' }}</n-text>
+                                        <n-text depth="3">Views: {{ videoInfo?.views || 'N/A' }}</n-text>
+                                    </n-space>
+                                    <n-space>
+                                        <n-text depth="4">{{ prettyMs(videoInfo?.duration) || 'N/A' }}</n-text>
+                                    </n-space>
+                                </div>
+                                <n-image v-if="videoInfo.thumbnail" :src="videoInfo.thumbnail" height="120" fit="cover"
+                                    class="mb-4 rounded w-auto" />
+                            </div>
+
                             <n-scrollbar style="max-height: 360px;">
                                 <n-list bordered>
                                     <n-list-item v-for="fmt in formats" :key="fmt.itag" class="format-item"
                                         @click="selectFormat(fmt)">
                                         <div class="flex justify-between items-center w-full">
                                             <div>
-                                                <n-text strong>itag {{ fmt.itag }}</n-text>
-                                                <div class="text-sm text-muted">{{ convertResolution(fmt.resolution) ||
-                                                    'N/A' }} • {{ fmt.ext }}</div>
+                                                <n-text strong> {{ convertResolution(fmt.resolution)
+                                                }}</n-text>
+                                                <div class="text-sm text-muted">
+                                                    {{ fmt.itag }} • {{
+                                                        fmt.ext
+                                                    }}
+                                                </div>
                                             </div>
                                             <n-space vertical>
                                                 <n-text class="text-sm">{{ fmt.size_mb ? fmt.size_mb.toFixed(2) + ' MB'
@@ -80,7 +115,7 @@
                                                     '—' }}</n-text>
                                                 <n-tag :type="fmt.audio_codec === 'none' ? 'success' : 'info'"
                                                     size="small">
-                                                    {{ fmt.audio_codec === 'none' ? 'Video' : 'Video+Audio' }}
+                                                    {{ fmt.audio_codec === 'none' ? 'Video' : 'Audio' }}
                                                 </n-tag>
                                             </n-space>
                                         </div>
@@ -122,6 +157,7 @@
                                             }}</n-text>
                                             <n-text depth="3" class="block">Views: {{ videoInfo.views || 'N/A'
                                             }}</n-text>
+                                            <n-text depth="4">{{ prettyMs(videoInfo?.duration) || 'N/A' }}</n-text>
                                         </template>
                                     </div>
                                 </div>
@@ -130,7 +166,7 @@
                                     <div class="flex items-center justify-between mb-3">
                                         <n-gradient-text type="success">Select format to download</n-gradient-text>
                                         <div class="flex gap-2">
-                                            <n-button quaternary circle @click="router.back()"><n-icon>
+                                            <n-button quaternary circle @click="router.go(-1)"><n-icon>
                                                     <ArrowBackCircleOutline />
                                                 </n-icon></n-button>
                                             <n-button quaternary circle @click="handleDrawerClose"><n-icon>
@@ -154,9 +190,10 @@
                                                     @click="selectFormat(fmt)">
                                                     <div class="flex justify-between items-center w-full">
                                                         <div>
-                                                            <n-text strong>itag {{ fmt.itag }}</n-text>
-                                                            <div class="text-sm text-muted">{{
-                                                                convertResolution(fmt.resolution) || 'N/A' }} • {{
+                                                            <n-text strong> {{ convertResolution(fmt.resolution)
+                                                            }}</n-text>
+                                                            <div class="text-sm text-muted">
+                                                                {{ fmt.itag }} • {{
                                                                     fmt.ext
                                                                 }}</div>
                                                         </div>
@@ -201,6 +238,7 @@ import { generateUUID, useIsMobile } from '../reusables'
 import { useStateStore } from '../store/stateStore'
 import { saveFile } from '../db/download'
 import { audioItags } from '../utils'
+import prettyMs from 'pretty-ms';
 
 const route = useRoute()
 const router = useRouter()
@@ -223,8 +261,10 @@ const currentUrl = computed({
     set: (v) => (url.value = (v || '').trim())
 })
 
-const videoInfo = ref(null)
+const AllVideoInfo = computed(() => downloadStore.loadedformats)
+const videoInfo = ref({})
 const formats = ref([])
+
 
 const activeId = computed(() => route.query.id || null)
 
@@ -235,7 +275,7 @@ watch(
             openForId(id)
         } else {
             active_drawer.value = false
-            videoInfo.value = null
+            videoInfo.value = {}
             formats.value = []
         }
     },
@@ -300,7 +340,7 @@ function removeIdFromUrl() {
     const q = { ...route.query }
     if (q.id) delete q.id
     // router.replace({ name: route.name || route.path, query: q }).catch(() => { })
-    router.push('/h/yt/custom-config')
+    router.push({ name: route.name })
 }
 
 function handleDrawerClose() {
@@ -318,7 +358,7 @@ async function getFormats() {
         return
     }
 
-    isLoading.value = true
+    // isLoading.value = true
     initialized.value = false
 
     try {
@@ -330,14 +370,15 @@ async function getFormats() {
             title: '',
             artist: '',
             views: '',
-            thumbnail: ''
+            thumbnail: '',
+            duration: 0
         }
 
         await router.push({ name: 'CustomConfig', query: { id } })
 
         await downloadStore.getFileSogs(id, url.value)
 
-        initialized.value = true
+
     } catch (err) {
         console.error(err)
         message.error('Failed to load formats.')
@@ -356,15 +397,16 @@ async function selectFormat(format) {
     const id = generateUUID()
     downloadStore.get_download_meta(id, url.value, format.itag)
 
-    const combinedItag =  await getItagWithAudio(format.itag, formats.value);
+    const combinedItag = await getItagWithAudio(format.itag, formats.value);
 
     setTimeout(() => {
         message.info('Download started')
         downloading.value = false
         active_drawer.value = false
-        // url.value = null
-        router.push(`h/yt/${id}`)
-        removeIdFromUrl()
+        url.value = null
+        router.push({ name: 'YoutubeDetail', params: { id } })
+        videoInfo.value = {}
+        formats.value = []
     }, 2000)
     await saveFile(id, {
         url: videoInfo.value.url,

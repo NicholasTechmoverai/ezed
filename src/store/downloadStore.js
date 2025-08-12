@@ -150,7 +150,6 @@ export const useDownloadStore = defineStore('downloadStore', {
       let filename = suggestFilename(url);
       let extension = ext || (audioItags.includes(itag) ? "mp4a" : "mp4");
       const abb_r = await getSiteKeyFromURL(url);
-      alert(abb_r)
 
       this.update_download_progress({
         id,
@@ -166,7 +165,7 @@ export const useDownloadStore = defineStore('downloadStore', {
         islist: false
       })
 
-      this.stateStore.addTask({ id, name: `${filename}`, url: `/h/${abb_r}/${id}` });
+      this.stateStore.addTask({ id, name: `${filename}`, url: `/h/${abb_r}/${id}`, time: Date.now() });
 
       // Handle combined formats (video+audio)
       const [videoTag, audioTag] = await this.split_combined_itag(itag);
@@ -476,6 +475,7 @@ export const useDownloadStore = defineStore('downloadStore', {
           title: data.info.title,
           artist: data.info.artist,
           views: data.info.views,
+          duration: data.info.duration_sec,
           thumbnail: getYouTubeThumbnail(url),
           url: url
         }

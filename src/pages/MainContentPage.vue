@@ -8,6 +8,7 @@ import { STATUS_CONFIG } from '../utils'
 const downloadStore = useDownloadStore()
 
 const files = ref([])
+const siteCounts = ref({})
 const isLoading = ref(true)
 
 onMounted(async () => {
@@ -19,13 +20,20 @@ onMounted(async () => {
   } finally {
     isLoading.value = false
   }
+  getCountBySite()
 })
 
 const getCountByStatus = (status) =>
   files.value.filter(file => file.status === status || file.status === status.toLowerCase()).length
 
-const getCountBySite = (site) =>
-  files.value.filter(file => file.site === site).length
+const getCountBySite = (site = null) => {
+  if (site) return files.value.filter(file => file.key === site).length
+
+  for (const siteObj of allSites) {
+    siteCounts.value[siteObj.key] = files.value.filter(file => file.key === siteObj.key).length
+  }
+}
+
 
 const totalDownloads = computed(() => files.value.length)
 const ongoingDownloadsCount = computed(() => downloadStore.onGoingDownloads.length || 0)
@@ -64,27 +72,17 @@ const openTab = (filterKey, filterType = 'site') => {
           <n-tag type="primary" size="small">{{ allSites.length }} Sites</n-tag>
         </template>
 
-        <n-skeleton
-          v-if="isLoading"
-          text
-          :repeat="allSites.length"
-          height="24px"
-        />
+        <n-skeleton v-if="isLoading" text :repeat="allSites.length" height="24px" />
 
         <n-list v-else bordered hoverable>
           <n-list-item v-for="site in allSites" :key="site.key">
             <div class="flex justify-between items-center w-full">
-              <n-button
-                size="small"
-                secondary
-                class="flex items-center gap-2"
-                @click="openTab(site.key, 'site')"
-              >
+              <n-button size="small" secondary class="flex items-center gap-2" @click="openTab(site.key, 'site')">
                 <n-icon :component="site.icon" />
                 <span>{{ site.label }}</span>
               </n-button>
-              <n-tag :bordered="false" :type="getCountBySite(site.key) ? 'primary' : 'default'">
-                {{ getCountBySite(site.key) }}
+              <n-tag :bordered="false" :type="siteCounts[site.key] ? 'primary' : 'default'">
+                {{ siteCounts[site.key] }}
               </n-tag>
             </div>
           </n-list-item>
@@ -98,25 +96,16 @@ const openTab = (filterKey, filterType = 'site') => {
           </n-tag>
         </template>
 
-        <n-skeleton
-          v-if="isLoading"
-          text
+        <n-skeleton v-if="isLoading" text
           :repeat="Array.isArray(STATUS_CONFIG) ? STATUS_CONFIG.length : Object.keys(STATUS_CONFIG).length"
-          height="24px"
-        />
+          height="24px" />
 
         <n-list v-else bordered hoverable>
-          <n-list-item
-            v-for="status in (Array.isArray(STATUS_CONFIG) ? STATUS_CONFIG : Object.values(STATUS_CONFIG))"
-            :key="status.message"
-          >
+          <n-list-item v-for="status in (Array.isArray(STATUS_CONFIG) ? STATUS_CONFIG : Object.values(STATUS_CONFIG))"
+            :key="status.message">
             <div class="flex justify-between items-center w-full">
-              <n-button
-                size="small"
-                :type="status.type"
-                class="flex items-center gap-2"
-                @click="openTab(status.message, 'status')"
-              >
+              <n-button size="small" :type="status.type" class="flex items-center gap-2"
+                @click="openTab(status.message, 'status')">
                 <n-icon :component="status.icon" />
                 <span>{{ status.message }}</span>
               </n-button>
