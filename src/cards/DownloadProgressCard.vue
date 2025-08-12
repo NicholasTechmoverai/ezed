@@ -1,11 +1,10 @@
 <template>
   <div class="min-h-screen p-4 flex items-center justify-center">
-    <!-- Skeleton Loading -->
     <transition name="fade-slide" mode="out-in">
       <n-card v-if="loading" hoverable :bordered="false" class="max-w-sm w-full mx-auto transition-all duration-300"
         :content-style="{ padding: 0 }">
         <n-space vertical>
-          <n-skeleton height="220px" width="100%" />
+          <n-skeleton height="220px" width="100%" class="min-w-[300px]"/>
           <n-space vertical :size="16" style="padding: 20px">
             <n-skeleton text width="70%" size="medium" />
             <n-space justify="space-between">
@@ -27,10 +26,10 @@
         class="max-w-sm w-full mx-auto transition-all duration-300 hover:shadow-xl dark:hover:shadow-lg dark:hover:shadow-neutral-800/50 rounded-2xl overflow-hidden"
         :content-style="{ padding: 0 }">
         <div class="flex flex-col">
-          <!-- Thumbnail with progress overlay -->
-          <div class="relative w-full h-56 bg-gradient-to-r from-cyan-500 to-blue-500 group cursor-pointer"
+          
+          <div class="relative w-full h-56 bg-gradient-to-r from-cyan-500 to-blue-500 group cursor-pointer  overflow-hidden "
             @click="toggleLoader">
-            <div class="absolute inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center transition-opacity"
+            <div class="absolute inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center transition-opacity z-50"
               :class="isLoaderActive ? 'opacity-100' : 'opacity-0'">
               <transition name="zoom" mode="out-in">
                 <div v-if="downloadStatus === STATUS_CONFIG.merging.message" key="merging" class="text-center p-4">
@@ -62,8 +61,8 @@
               </transition>
             </div>
 
-            <n-image :src="fileThumbnail" :fallback-src="defaultThumbnail"
-              class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+        <n-image :src="fileThumbnail" :fallback-src="defaultThumbnail"
+              class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 z-30"
               preview-disabled>
               <template #error>
                 <div class="w-full h-full bg-gradient-to-br from-indigo-500 to-purple-600 flex flex-col items-center justify-center p-4">
@@ -76,17 +75,17 @@
 
             <!-- Status badge -->
             <n-tag :type="statusTagType" round
-              class="flex items-center justify-center absolute top-3 left-3 shadow-lg bg-white/20 backdrop-blur-md border-0">
+              class="flex items-center justify-center absolute top-3 left-3 shadow-lg bg-white/20 backdrop-blur-md border-0 z-60">
               <template #icon>
                 <n-icon :component="statusIcon" />
               </template>
               {{ statusMessage }}
             </n-tag>
 
-            <n-tooltip trigger="hover">
+            <n-tooltip trigger="hover" >
               <template #trigger>
                 <n-button type="default" circle size="small" @click.stop="showMeta"
-                  class="absolute top-3 right-3 shadow-lg bg-white/20 backdrop-blur-md border-0">
+                  class="absolute top-3 right-3 shadow-lg bg-white/20 backdrop-blur-md border-0 z-60">
                   <template #icon>
                     <n-icon :component="InformationCircle" class="text-white" />
                   </template>
@@ -143,15 +142,27 @@
               <transition name="fade" mode="out-in">
                 <template v-if="!showDownloadProgress">
                   <n-space vertical>
-                    <n-button type="primary" size="large" @click="startDownload" class="shadow-md">
+                    <n-button 
+                      type="primary" 
+                      size="large" 
+                      @click="startDownload" 
+                      class="shadow-md"
+                      :disabled="downloadStatus === 'completed'"
+                    >
                       <template #icon>
                         <n-icon>
-                          <RefreshOutline />
+                          <DownloadOutline v-if="downloadStatus !== 'completed'" />
+                          <CheckmarkOutline v-else />
                         </n-icon>
                       </template>
-                      Download File
+                      {{ downloadStatus === 'completed' ? 'Download Complete' : 'Download File' }}
                     </n-button>
-                    <n-button type="tertiary" size="large" @click="shareDownload">
+                    <n-button 
+                      type="tertiary" 
+                      size="large" 
+                      @click="shareDownload"
+                      :disabled="downloadStatus !== 'completed'"
+                    >
                       <template #icon>
                         <n-icon>
                           <ShareSocialOutline />
@@ -166,8 +177,12 @@
                   <n-space justify="space-between">
                     <n-tooltip trigger="hover">
                       <template #trigger>
-                        <n-button circle size="large" :type="downloadStatus === 'paused' ? 'primary' : 'default'"
-                          @click="downloadStatus === 'paused' ? resumeDownload() : pauseDownload()">
+                        <n-button 
+                          circle 
+                          size="large" 
+                          :type="downloadStatus === 'paused' ? 'primary' : 'default'"
+                          @click="downloadStatus === 'paused' ? resumeDownload() : pauseDownload()"
+                        >
                           <template #icon>
                             <n-icon>
                               <PlayOutline v-if="downloadStatus === 'paused'" />
@@ -179,8 +194,10 @@
                       {{ downloadStatus === 'paused' ? 'Resume' : 'Pause' }}
                     </n-tooltip>
 
-                    <n-popconfirm :positive-text="downloadStatus === 'completed' ? 'Delete' : 'Cancel'"
-                      @positive-click="cancelDownload">
+                    <n-popconfirm 
+                      :positive-text="downloadStatus === 'completed' ? 'Delete' : 'Cancel'"
+                      @positive-click="cancelDownload"
+                    >
                       <template #trigger>
                         <n-button circle size="large" type="error" secondary>
                           <template #icon>
@@ -197,7 +214,13 @@
 
                     <n-tooltip trigger="hover">
                       <template #trigger>
-                        <n-button circle size="large" type="default" secondary @click="toggleLoader">
+                        <n-button 
+                          circle 
+                          size="large" 
+                          type="default" 
+                          secondary 
+                          @click="toggleLoader"
+                        >
                           <template #icon>
                             <n-icon>
                               <EyeOffOutline v-if="isLoaderActive" />
@@ -238,6 +261,311 @@
   </div>
 </template>
 
+<script setup>
+import { ref, computed, onMounted, watch,onUnmounted } from 'vue'
+import { useThemeVars } from 'naive-ui'
+import {
+  ImageOutline,
+  PlayOutline,
+  PauseOutline,
+  DownloadOutline,
+  EyeOutline,
+  EyeOffOutline,
+  SpeedometerOutline,
+  TimeOutline,
+  RefreshOutline,
+  ShareSocialOutline,
+  TrashOutline,
+  InformationCircle,
+  CheckmarkOutline
+} from '@vicons/ionicons5'
+import { useDownloadStore } from '../store/downloadStore'
+import { getFile } from '../db/download'
+import defaultThumbnail from "../assets/defaultThumbnail.png"
+import { useMessage } from 'naive-ui'
+import router from '../router'
+import { STATUS_CONFIG } from '../utils'
+import { useUserStore } from '../store/userStore'
+
+// Props
+const props = defineProps({
+  id: {
+    type: String,
+    required: true
+  }
+})
+
+// Composables
+const themeVars = useThemeVars()
+const message = useMessage()
+const downloadStore = useDownloadStore()
+const userStore = useUserStore()
+
+// State
+const isLoaderActive = ref(true)
+const localFileData = ref(null)
+const loading = ref(true)
+const lastUpdate = ref(Date.now())
+const speedSamples = ref([])
+
+// Computed
+const fileThumbnail = computed(() => localFileData.value?.thumbnail || defaultThumbnail)
+const fileName = computed(() => {
+  const name = localFileData.value?.name || localFileData.value?.filename || localFileData.value?.title || 'Untitled file'
+  return name.split('.').slice(0, -1).join('.') || name
+})
+const fileExtension = computed(() => {
+  const ext = localFileData.value?.extension ||
+    'file'
+  return ext.toUpperCase()
+})
+const formattedFileSize = computed(() => formatFileSize(localFileData.value?.filesize))
+const downloadStatus = computed(() => localFileData.value?.status || 'default')
+const statusTagType = computed(() => STATUS_CONFIG[downloadStatus.value]?.type || 'default')
+const statusIcon = computed(() => STATUS_CONFIG[downloadStatus.value]?.icon || null)
+const statusMessage = computed(() => STATUS_CONFIG[downloadStatus.value]?.message || 'Unknown')
+const showDownloadProgress = computed(() => ['active', 'paused', 'downloading', 'merging'].includes(downloadStatus.value))
+const progressColor = computed(() => {
+  switch (downloadStatus.value) {
+    case 'active': return themeVars.value.primaryColor
+    case 'downloading': return themeVars.value.primaryColor
+    case 'paused': return themeVars.value.warningColor
+    case 'error': return themeVars.value.errorColor
+    case 'completed': return themeVars.value.successColor
+    default: return themeVars.value.infoColor
+  }
+})
+const progressRailColor = computed(() => changeColor('gray', { alpha: 0.2 }))
+
+// Optimized computed properties
+const hasAudio = computed(() => {
+  return !!localFileData.value?.a_filesize || 
+         audioDownloadPercentage.value > 0 || 
+         localFileData.value?.hasAudio
+})
+
+const totalFileSize = computed(() => {
+  return hasAudio.value 
+    ? (localFileData.value?.filesize || 0) + (localFileData.value?.a_filesize || 0)
+    : localFileData.value?.filesize || 0
+})
+
+const totalDownloaded = computed(() => {
+  return hasAudio.value
+    ? (localFileData.value?.downloadedSize || 0) + (localFileData.value?.a_downloadedSize || 0)
+    : localFileData.value?.downloadedSize || 0
+})
+
+const averageDownloadPercentage = computed(() => {
+  return totalFileSize.value
+    ? Math.min(100, Math.round((totalDownloaded.value / totalFileSize.value) * 100))
+    : 0
+})
+
+const downloadPercentage = computed(() => {
+  return localFileData.value?.filesize
+    ? Math.min(100, Math.round((localFileData.value.downloadedSize / localFileData.value.filesize) * 100))
+    : 0
+})
+
+const audioDownloadPercentage = computed(() => {
+  return localFileData.value?.a_filesize
+    ? Math.min(100, Math.round((localFileData.value.a_downloadedSize / localFileData.value.a_filesize) * 100))
+    : 0
+})
+
+const downloadSpeed = computed(() => {
+  if (speedSamples.value.length === 0) return '0 KB/s'
+  
+  // Calculate average speed from samples
+  const avgSpeed = speedSamples.value.reduce((sum, speed) => sum + speed, 0) / speedSamples.value.length
+  return formatSpeed(avgSpeed)
+})
+
+const timeRemaining = computed(() => {
+  if (!localFileData.value?.filesize || downloadStatus.value !== 'active') return '--:--'
+  
+  const remainingBytes = totalFileSize.value - totalDownloaded.value
+  if (remainingBytes <= 0) return '00:00'
+
+  const currentSpeed = speedSamples.value[speedSamples.value.length - 1] || 0
+  if (currentSpeed <= 0) return '--:--'
+
+  const seconds = Math.ceil(remainingBytes / currentSpeed)
+  return formatTime(seconds)
+})
+
+const remainingSize = computed(() => {
+  return Math.max(0, totalFileSize.value - totalDownloaded.value)
+})
+
+const mergeProgress = computed(() => localFileData.value?.merge_progress || 0)
+
+// Methods
+const fetchFileData = async () => {
+  loading.value = true
+  try {
+    // Check ongoing downloads first
+    if (downloadStore.onGoingDownloads[props.id]) {
+      localFileData.value = downloadStore.onGoingDownloads[props.id]
+      return
+    }
+
+    // Fallback to database
+    const dbFile = await getFile(props.id)
+    if (dbFile) {
+      localFileData.value = {
+        ...dbFile,
+        status: dbFile.status || 'completed'
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching file:', error)
+    message.error('Failed to load download details')
+  } finally {
+    loading.value = false
+  }
+}
+
+const toggleLoader = () => {
+  isLoaderActive.value = !isLoaderActive.value
+}
+
+const startDownload = async () => {
+  try {
+    message.loading('Starting download...')
+    await downloadStore.download_file(
+      `${localFileData.value.key || 'inst'}/${userStore.user?.username}/download`,
+      props.id,
+      localFileData.value?.url,
+      localFileData.value.itag,
+      localFileData.value.format
+    )
+    message.success('Download started successfully')
+  } catch (error) {
+    message.error('Failed to start download: ' + error.message)
+    console.error('Download error:', error)
+  }
+}
+
+const pauseDownload = () => {
+  downloadStore.pauseDownload(props.id)
+  message.info('Download paused')
+}
+
+const resumeDownload = () => {
+  downloadStore.resumeDownload(props.id)
+  message.info('Download resumed')
+}
+
+const cancelDownload = async () => {
+  try {
+    if (downloadStatus.value === 'completed') {
+      await downloadStore.deleteDownload(props.id)
+      message.success('Download deleted')
+      router.back()
+    } else {
+      await downloadStore.cancelDownload(props.id)
+      message.info('Download cancelled')
+    }
+  } catch (error) {
+    message.error('Failed to cancel download: ' + error.message)
+    console.error('Cancel error:', error)
+  }
+}
+
+const shareDownload = () => {
+  if (navigator.share) {
+    navigator.share({
+      title: fileName.value,
+      text: `Check out this download: ${fileName.value}`,
+      url: window.location.href
+    }).catch(() => {
+      message.warning('Sharing was cancelled')
+    })
+  } else {
+    navigator.clipboard.writeText(window.location.href)
+    message.success('Link copied to clipboard')
+  }
+}
+
+const showMeta = () => {
+  router.push(`/h/meta/${props.id}`)
+}
+
+const formatFileSize = (bytes) => {
+  if (!bytes || bytes <= 0) return '0 Bytes'
+  const units = ['Bytes', 'KB', 'MB', 'GB']
+  const exponent = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1)
+  const value = bytes / Math.pow(1024, exponent)
+  return `${value.toFixed(exponent > 0 ? 2 : 0)} ${units[exponent]}`
+}
+
+const formatSpeed = (bytesPerSecond) => {
+  if (bytesPerSecond <= 0) return '0 KB/s'
+  if (bytesPerSecond < 1024) return `${Math.round(bytesPerSecond)} B/s`
+  if (bytesPerSecond < 1048576) return `${(bytesPerSecond / 1024).toFixed(1)} KB/s`
+  return `${(bytesPerSecond / 1048576).toFixed(1)} MB/s`
+}
+
+const formatTime = (seconds) => {
+  if (seconds <= 0) return '00:00'
+  const mins = Math.floor(seconds / 60)
+  const secs = Math.floor(seconds % 60)
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+}
+
+const changeColor = (color, options = { alpha: 1 }) => {
+  return color.replace(/rgb\(|\)/g, '').split(',')
+    .map((c, i) => i === 3 ? options.alpha : c.trim())
+    .join(',')
+    .replace(/(\d+),(\d+),(\d+)(?:,[\d.]+)?/, `rgba($1,$2,$3,${options.alpha})`)
+}
+
+const updateDownloadSpeed = () => {
+  if (!localFileData.value || downloadStatus.value !== 'active') return
+  
+  const now = Date.now()
+  const timeDiff = (now - lastUpdate.value) / 1000 // in seconds
+  if (timeDiff < 0.5) return // Don't update too frequently
+
+  const downloadedDiff = totalDownloaded.value - (localFileData.value.lastDownloadedSize || 0)
+  const currentSpeed = downloadedDiff / timeDiff // bytes per second
+  
+  // Update last values
+  lastUpdate.value = now
+  localFileData.value.lastDownloadedSize = totalDownloaded.value
+
+  // Store sample (keep last 5 samples)
+  speedSamples.value.push(currentSpeed)
+  if (speedSamples.value.length > 5) speedSamples.value.shift()
+}
+
+// Watchers
+watch(() => props.id, fetchFileData, { immediate: true })
+
+watch(
+  () => downloadStore.onGoingDownloads[props.id],
+  (newValue) => {
+    if (newValue) {
+      localFileData.value = newValue
+      lastUpdate.value = Date.now()
+      speedSamples.value = []
+    }
+  },
+  { deep: true }
+)
+
+// Setup periodic speed updates
+let speedInterval
+onMounted(() => {
+  speedInterval = setInterval(updateDownloadSpeed, 1000)
+})
+
+onUnmounted(() => {
+  clearInterval(speedInterval)
+})
+</script>
 
 <style scoped>
 /* Custom transitions */
@@ -301,237 +629,6 @@
   --tw-gradient-to: #7e22ce;
 }
 </style>
-
-<script setup>
-import { ref, computed, onMounted, watch } from 'vue'
-import { useThemeVars } from 'naive-ui'
-import {
-  ImageOutline,
-  PlayOutline,
-  PauseOutline,
-  CloseCircleOutline,
-  DownloadOutline,
-  EyeOutline,
-  EyeOffOutline,
-  SpeedometerOutline,
-  TimeOutline,
-  RefreshOutline,
-  ShareSocialOutline,
-  TrashOutline,
-  InformationCircle,
-  CheckmarkOutline
-} from '@vicons/ionicons5'
-import { useDownloadStore } from '../store/downloadStore'
-import { getFile } from '../db/download'
-import defaultThumbnail from "../assets/defaultThumbnail.png"
-import { useMessage } from 'naive-ui'
-import router from '../router'
-import { STATUS_CONFIG } from '../utils'
-import { useUserStore } from '../store/userStore'
-
-
-// Props
-const props = defineProps({
-  id: {
-    type: String,
-    required: true
-  }
-})
-
-// Composables
-const themeVars = useThemeVars()
-const message = useMessage()
-const downloadStore = useDownloadStore()
-
-// State
-const isLoaderActive = ref(true)
-const localFileData = ref(null)
-const loading = ref(true)
-
-// Computed
-const fileThumbnail = computed(() => localFileData.value?.thumbnail || defaultThumbnail)
-const fileName = computed(() => {
-  const name = localFileData.value?.name || localFileData.value?.filename || localFileData.value?.title || 'Untitled file'
-  return name.split('.').slice(0, -1).join('.') || name
-})
-const fileExtension = computed(() => {
-  const ext = localFileData.value?.extension ||
-    localFileData.value?.filename?.split('.').pop() ||
-    'file'
-  return ext.toUpperCase()
-})
-const formattedFileSize = computed(() => formatFileSize(localFileData.value?.filesize))
-const downloadStatus = computed(() => localFileData.value?.status || 'default')
-const statusTagType = computed(() => STATUS_CONFIG[downloadStatus.value]?.type || 'default')
-const statusIcon = computed(() => STATUS_CONFIG[downloadStatus.value]?.icon || null)
-const statusMessage = computed(() => STATUS_CONFIG[downloadStatus.value]?.message || 'Unknown')
-const showDownloadProgress = computed(() => ['active', 'paused', 'downloading', 'merging'].includes(downloadStatus.value))
-const progressColor = computed(() => {
-  switch (downloadStatus.value) {
-    case 'active': return themeVars.value.primaryColor
-    case 'downloading': return themeVars.value.primaryColor
-    case 'paused': return themeVars.value.warningColor
-    case 'error': return themeVars.value.errorColor
-    case 'completed': return themeVars.value.successColor
-    default: return themeVars.value.infoColor
-  }
-})
-const progressRailColor = computed(() => changeColor('gray', { alpha: 0.2 }))
-
-// Download progress
-const averageDownloadPercentage = computed(() => {
-  if (!localFileData.value?.filesize) return 0
-
-  if (!hasAudio.value) {
-    return Math.min(100, Math.round((localFileData.value?.downloadedSize / localFileData.value?.filesize) * 100) || 0)
-  }
-
-  const videoProgress = localFileData.value.downloadedSize / localFileData.value.filesize
-  const audioProgress = localFileData.value.a_downloadedSize / localFileData.value.a_filesize
-  return Math.min(100, Math.round(((videoProgress + audioProgress) / 2) * 100))
-})
-
-const downloadPercentage = computed(() => {
-  if (!localFileData.value?.filesize) return 0
-  return Math.min(100, Math.round((localFileData.value?.downloadedSize / localFileData.value?.filesize) * 100) || 0)
-})
-
-const audioDownloadPercentage = computed(() => {
-  if (!localFileData.value?.a_filesize) return 0
-  return Math.min(100, Math.round((localFileData.value?.a_downloadedSize / localFileData.value?.a_filesize) * 100) || 0)
-})
-
-const downloadSpeed = computed(() => {
-  const speed = localFileData.value?.downloadSpeedMbps
-  return speed ? `${speed}` : '0 KB/s'
-})
-
-const timeRemaining = computed(() => {
-  const eta = localFileData.value?.eta
-  return eta || '--:--'
-})
-
-const remainingSize = computed(() => {
-  if (!localFileData.value?.filesize) return 0
-  return Math.max(0, localFileData.value.filesize - (localFileData.value.downloadedSize || 0))
-})
-
-const mergeProgress = computed(() => localFileData.value?.merge_progress || 0)
-const hasAudio = computed(() => audioDownloadPercentage.value || localFileData.value?.hasAudio || false)
-
-// Methods
-const fetchFileData = async () => {
-  loading.value = true
-  try {
-    // Check ongoing downloads first
-    if (downloadStore.onGoingDownloads[props.id]) {
-      localFileData.value = downloadStore.onGoingDownloads[props.id]
-      return
-    }
-
-    // Fallback to database
-    const dbFile = await getFile(props.id)
-    if (dbFile) {
-      localFileData.value = {
-        ...dbFile,
-        status: dbFile.status || 'completed'
-      }
-    }
-  } catch (error) {
-    console.error('Error fetching file:', error)
-    message.error('Failed to load download details')
-  } finally {
-    loading.value = false
-  }
-}
-
-const toggleLoader = () => {
-  isLoaderActive.value = !isLoaderActive.value
-}
-const userStore = useUserStore()
-const startDownload = async () => {
-  try {
-    message.loading('Starting download...')
-    await downloadStore.download_file(`${localFileData.value.key || 'inst'}/${userStore.user?.username}/download`, props.id, localFileData.value?.url,localFileData.value.itag, localFileData.value.format)
-    message.success('Download started successfully')
-  } catch (error) {
-    message.error('Failed to start download')
-    console.error('Download error:', error)
-  }
-}
-
-const pauseDownload = () => {
-  downloadStore.pauseDownload(props.id)
-  message.info('Download paused')
-}
-
-const resumeDownload = () => {
-  downloadStore.resumeDownload(props.id)
-  message.info('Download resumed')
-}
-
-const cancelDownload = async () => {
-  try {
-    if (downloadStatus.value === 'completed') {
-      await downloadStore.deleteDownload(props.id)
-      message.success('Download deleted')
-      router.back()
-    } else {
-      await downloadStore.cancelDownload(props.id)
-      message.info('Download cancelled')
-    }
-  } catch (error) {
-    message.error('Failed to cancel download')
-    console.error('Cancel error:', error)
-  }
-}
-
-const shareDownload = () => {
-  if (navigator.share) {
-    navigator.share({
-      title: fileName.value,
-      text: `Check out this download: ${fileName.value}`,
-      url: window.location.href
-    }).catch(() => {
-      message.warning('Sharing was cancelled')
-    })
-  } else {
-    navigator.clipboard.writeText(window.location.href)
-    message.success('Link copied to clipboard')
-  }
-}
-
-const showMeta = () => {
-  router.push(`/h/meta/${props.id}`)
-}
-
-const formatFileSize = (bytes) => {
-  if (!bytes) return '0 Bytes'
-  const units = ['Bytes', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(1024))
-  return `${(bytes / Math.pow(1024, i)).toFixed(i ? 2 : 0)} ${units[i]}`
-}
-
-const changeColor = (color, options = { alpha: 1 }) => {
-  return color.replace(/rgb\(|\)/g, '').split(',')
-    .map((c, i) => i === 3 ? options.alpha : c.trim())
-    .join(',')
-    .replace(/(\d+),(\d+),(\d+)(?:,[\d.]+)?/, `rgba($1,$2,$3,${options.alpha})`)
-}
-
-// Watchers
-watch(() => props.id, fetchFileData, { immediate: true })
-
-watch(
-  () => downloadStore.onGoingDownloads[props.id],
-  (newValue) => {
-    if (newValue) {
-      localFileData.value = newValue
-    }
-  },
-  { deep: true }
-)
-</script>
 
 <style scoped>
 /* Custom transitions */

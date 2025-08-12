@@ -106,7 +106,7 @@ export const useDownloadStore = defineStore('downloadStore', {
         await saveFile(prg.id, {
           url: prg.url ?? target[`${prefix}url`],
           filename: prg.filename ?? target[`${prefix}filename`],
-          status: prg.status ?? 'interrupted',
+          status: prg.status ?? STATUS_CONFIG.interrupted.message,
           thumbnail: prg.thumbnail ?? target[`${prefix}thumbnail`],
           filesize: prg.contentLength ?? target[`${prefix}filesize`],
           downloadedSize: prg.downloadedSize ?? target[`${prefix}downloadedSize`],

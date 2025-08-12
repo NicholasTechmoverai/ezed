@@ -1,6 +1,6 @@
 <template>
   <n-layout-sider bordered collapse-mode="width" :collapsed-width="64" :width="240" v-model:collapsed="collapsed"
-    show-trigger class="h-screen fixed z-9999">
+    show-trigger class="h-screen fixed z-150">
     <div class="p-4 flex items-center gap-2 justify-center border-b border-gray-200 dark:border-gray-700">
       <Logo :showName="!collapsed" :rounded="2" :size="2" />
     </div>
