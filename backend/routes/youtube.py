@@ -190,3 +190,4 @@ async def search(request: Request, q: str = Query(..., min_length=1)):
         raise HTTPException(
             status_code=500, detail=f"Failed to process download meta: {str(e)}"
         )
+
