@@ -213,16 +213,16 @@
 
                     <n-tooltip trigger="hover">
                       <template #trigger>
-                        <n-button circle size="large" type="default" secondary @click="toggleLoader">
+                        <n-button circle size="large" type="default" @click="startDownload">
                           <template #icon>
                             <n-icon>
-                              <EyeOffOutline v-if="isLoaderActive" />
-                              <EyeOutline v-else />
+                              <RefreshOutline />
                             </n-icon>
                           </template>
+
                         </n-button>
                       </template>
-                      {{ isLoaderActive ? 'Hide' : 'Show' }} Progress
+                      retry
                     </n-tooltip>
 
                     <n-button circle size="large" type="info" secondary @click="showMeta">
