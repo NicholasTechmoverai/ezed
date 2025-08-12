@@ -6,6 +6,9 @@ import { createRouter, createWebHistory } from 'vue-router'
 import LandingPage from '../landingpage/index.vue'
 import LayoutPage from '../pages/LayoutPage.vue'
 import DownloadsPage from '../pages/DownloadsPage.vue'
+import YoutubeLandPage from '../cards/YoutubeLandPage.vue'
+import YoutubeAutoCard from '../cards/YoutubeAutoCard.vue'
+import YoutubeManualCard from '../cards/YoutubeManualCard.vue'
 
 // Lazy-loaded route components (better for performance)
 const MainContentPage = () => import('../pages/MainContentPage.vue')
@@ -28,11 +31,11 @@ const routes = [
     name: 'Landing',
     component: LandingPage,
   },
-    {
+  {
     path: '/share',
     name: 'HandleShare',
     component: HandleSharePage,
-    props:true
+    props: true
   },
   {
     path: '/h',
@@ -66,10 +69,25 @@ const routes = [
         component: YoutubePage,
         children: [
           {
+            path: 'wonder-wall',
+            name: 'WonderWall',
+            component: YoutubeLandPage,
+          }, {
+            path: 'automatic',
+            name: 'YoutubeAutomatic',
+            component: YoutubeAutoCard,
+          },
+          {
+            path: 'custom-config',
+            name: 'CustomConfig',
+            component: YoutubeManualCard,
+          }, 
+          {
             path: ':id',
             name: 'YoutubeDetail',
             component: DownloadCardMount,
           },
+
           {
             path: 'list/:list_id',
             name: 'YoutubeList',
@@ -125,7 +143,7 @@ const routes = [
         name: 'MetaCard',
         component: FileMetaCard,
       },
-      
+
       {
         path: 'downloads',
         name: 'DownloadPage',

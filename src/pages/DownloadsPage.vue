@@ -2,10 +2,11 @@
     <div class="download-selection-container">
         <n-card title="Download Management" hoverable class="">
             <n-space vertical>
+
                 <n-alert type="info" :show-icon="false">
                     You have selected {{ checkedRowKeys.length }} item{{ checkedRowKeys.length !== 1 ? 's' : '' }}
+                    <span v-if="downloads.length > 0" class="absolute right-1"> {{ downloads.length }} downloads</span>
                 </n-alert>
-
                 <div class="batch-actions">
                     <n-button-group>
                         <n-button secondary @click="selectAllRows" :disabled="downloads.length === 0">

@@ -1,3 +1,4 @@
+import { audioItags } from ".";
 
 export const normalizeYouTubeUrl = (input) => {
     if (!input) return;
@@ -10,6 +11,49 @@ export const normalizeYouTubeUrl = (input) => {
     }
 
     return null;
+}
+
+export function getYouTubeThumbnail(url) {
+    // Optimized regex to match YouTube video ID across all URL formats
+    const regex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^/\n\s]+\/\S+\/|(?:v|e(?:mbed)?\/|.*[?&]v=))|youtu\.be\/|youtube\.com\/shorts\/)([^"&?/\s]{11})/;
+
+    const match = url.match(regex);
+    if (match && match[1]) {
+        return `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg`;
+    }
+
+    console.warn(`Invalid YouTube URL: ${url}`);
+    return null;
+}
+
+export function convertResolution(res) {
+    if (!res) return 'Unknown';
+
+    if (res === 'audio only') {
+        return 'audio';
+    }
+
+    // Extract width and height from the resolution string (e.g., "1920x1080")
+    const [width, height] = res.split('x').map(Number);
+
+    if (width) console.log('')
+
+    if (isNaN(height)) return res;
+
+    switch (height) {
+        case 144: return '144p';
+        case 240: return '240p';
+        case 360: return '360p';
+        case 480: return '480p';
+        case 720: return '720p';
+        case 1080: return '1080p';
+        case 1440: return '2K';  // For 2K resolution
+        case 2160: return '4K';  // For 4K resolution
+        case 4320: return '8K';  // For 8K resolution
+        default:
+            if (height > 2160) return '8K';  
+            return res;  
+    }
 }
 
 
@@ -31,4 +75,35 @@ export const suggestFilename = (url) => {
         console.error("Invalid URL:", url)
         return `zed_unknown_${Date.now()}`
     }
+}
+
+
+
+
+/**
+ * Create an itag combination if needed
+ * @param {string} clickedItag - The itag user clicked
+ * @param {Array} formats - Available format objects from the API
+ * @returns {string|null} - Combined itag (video+audio) or original itag
+ */
+export async function getItagWithAudio(clickedItag, formats) {
+  const isAudioOnly = audioItags.includes(clickedItag);
+
+  if (isAudioOnly) {
+    return clickedItag;
+  }
+
+  if (clickedItag === "18") {
+    return clickedItag;
+  }
+
+  const availableAudioItag = audioItags.find(aItag =>
+    formats.some(f => f.itag === aItag)
+  );
+
+  if (availableAudioItag) {
+    return `${clickedItag}+${availableAudioItag}`;
+  }
+
+  return clickedItag;
 }

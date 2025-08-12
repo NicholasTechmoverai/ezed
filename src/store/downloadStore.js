@@ -6,9 +6,10 @@ import { useStateStore } from './stateStore.js';
 import { useFfmpeg } from '../utils/useFfmpeg.js';
 import axios from 'axios';
 import { audioItags, STATUS_CONFIG } from '../utils/index.js';
-import { suggestFilename } from '../utils/others.js';
+import { getYouTubeThumbnail, suggestFilename } from '../utils/others.js';
 import { timestamp } from '@vueuse/core';
 import { getSiteKeyFromURL } from '../composables/index.js';
+import { ENDPOINTS } from '../api/index.js';
 
 export const useDownloadStore = defineStore('downloadStore', {
   state: () => ({
@@ -19,7 +20,8 @@ export const useDownloadStore = defineStore('downloadStore', {
     pendingMerges: {},    // Tracks downloads waiting to be merged
     currentDownloadCount: 0,
     mergeProgress: {},
-    listSongs: {}
+    listSongs: {},//playlist url songs
+    loadedformats: {}//url download formats
   }),
 
   getters: {
@@ -106,7 +108,7 @@ export const useDownloadStore = defineStore('downloadStore', {
         await saveFile(prg.id, {
           url: prg.url ?? target[`${prefix}url`],
           filename: prg.filename ?? target[`${prefix}filename`],
-          status: prg.status ?? STATUS_CONFIG.interrupted.message,
+          status: prg.status ?? STATUS_CONFIG.interrupted.key,
           thumbnail: prg.thumbnail ?? target[`${prefix}thumbnail`],
           filesize: prg.contentLength ?? target[`${prefix}filesize`],
           downloadedSize: prg.downloadedSize ?? target[`${prefix}downloadedSize`],
@@ -147,11 +149,12 @@ export const useDownloadStore = defineStore('downloadStore', {
       if (!url) return console.error("Missing URL");
       let filename = suggestFilename(url);
       let extension = ext || (audioItags.includes(itag) ? "mp4a" : "mp4");
-      const abb_r = getSiteKeyFromURL(url);
+      const abb_r = await getSiteKeyFromURL(url);
+      alert(abb_r)
 
       this.update_download_progress({
         id,
-        status: STATUS_CONFIG.starting.message,
+        status: STATUS_CONFIG.starting.key,
         progress: 0,
         filename,
         extension,
@@ -212,7 +215,6 @@ export const useDownloadStore = defineStore('downloadStore', {
 
         downloadId = headers.get("X-Download-URL") || id;
 
-        // Initialize download tracking
         this.update_download_progress({ id, status: 'processing' })
         if (this.pendingMerges[id]) {
           this.pendingMerges[id][downloadType] = { status: 'processing' };
@@ -257,19 +259,17 @@ export const useDownloadStore = defineStore('downloadStore', {
             const chunkSize = downloadedSize - lastDownloadedSize;
             const instantSpeed = (chunkSize / elapsed) / (1024 * 1024); // MB/s
 
-            // Calculate smoothed speed
             speedSamples.push(instantSpeed);
             if (speedSamples.length > MAX_SAMPLES) speedSamples.shift();
             const avgSpeed = speedSamples.reduce((a, b) => a + b, 0) / speedSamples.length;
 
-            // Update progress metrics
             const progress = Math.min((downloadedSize / contentLength) * 100, 100);
             const remainingSec = (contentLength - downloadedSize) / (avgSpeed * 1024 * 1024);
 
             this.update_download_progress({
               id,
               url,
-              status: STATUS_CONFIG.downloading.message,
+              status: STATUS_CONFIG.downloading.key,
               progress,
               downloadSpeedMbps: this.formatSpeed(avgSpeed),
               eta: this.formatETA(remainingSec),
@@ -285,10 +285,9 @@ export const useDownloadStore = defineStore('downloadStore', {
           }
         }
 
-        // Finalize download
         const blob = new Blob(chunks);
         if (this.pendingMerges[id]) {
-          this.pendingMerges[id][downloadType] = { blob, status: STATUS_CONFI.completed.message };
+          this.pendingMerges[id][downloadType] = { blob, status: STATUS_CONFI.completed.key };
           await this.checkAndMergeDownloads(id);
         } else {
           await this.finalizeDownload(id, blob, downloadedSize, this.onGoingDownloads[id].filename, this.onGoingDownloads[id].extension, isAudio);
@@ -307,7 +306,7 @@ export const useDownloadStore = defineStore('downloadStore', {
       if (!pending || !pending.video?.blob || !pending.audio?.blob) return;
 
       try {
-        this.onGoingDownloads[id].status =  STATUS_CONFIG.merging.message ;
+        this.onGoingDownloads[id].status = STATUS_CONFIG.merging.key;
 
         // Use WebWorker for non-blocking merging
         const mergedBlob = await this.useFfmpeg.mergeVideoAudio(
@@ -320,16 +319,14 @@ export const useDownloadStore = defineStore('downloadStore', {
         delete this.pendingMerges[id];
       } catch (error) {
         console.error("Merge failed:", error);
-        this.onGoingDownloads[id].status =  STATUS_CONFIG.merge_failed.message;
+        this.onGoingDownloads[id].status = STATUS_CONFIG.merge_failed.key;
       }
     },
 
-    /** Finalizes download and triggers file save */
     async finalizeDownload(id, blob, downloadedSize, filename, extension, isAudio) {
-      // Update state and persist
       this.update_download_progress({
         id,
-        status:  STATUS_CONFIG.completed.message ,
+        status: STATUS_CONFIG.completed.key,
         progress: 100,
         downloadSpeedMbps: "0 Mb/s",
         eta: '00:00',
@@ -342,7 +339,7 @@ export const useDownloadStore = defineStore('downloadStore', {
           url: this.onGoingDownloads[id]?.url || '',
           filename,
           [isAudio ? 'audioBlob' : 'videoBlob']: blob,
-          status:  STATUS_CONFIG.completed.message ,
+          status: STATUS_CONFIG.completed.key,
           thumbnail: this.onGoingDownloads[id]?.thumbnail || '',
           downloadedSize: blob.size
         });
@@ -350,7 +347,6 @@ export const useDownloadStore = defineStore('downloadStore', {
         console.error('Persist failed:', err);
       }
 
-      // Trigger file download
       this.saveToFileSystem(blob, filename, extension, id);
     },
 
@@ -446,7 +442,7 @@ export const useDownloadStore = defineStore('downloadStore', {
       try {
         const startTime = performance.now();
 
-        const { data } = await axios.post(`${B_URL}/yt/download-meta`, { url, itag });
+        const { data } = await axios.post(ENDPOINTS.FETCH_LIST_SONGS, { url, itag });
         this.stateStore.addTask({ id: id, name: data.title })
         await this.update_download_progress({
           id,
@@ -464,11 +460,36 @@ export const useDownloadStore = defineStore('downloadStore', {
 
       } catch (error) {
         console.error(`Failed to fetch metadata for URL [${url}]:`, error);
-        throw error; // rethrow if you want caller to handle
+        throw error;
+      }
+    },
+
+    async getFileSogs(id, url) {
+      try {
+        const startTime = performance.now();
+        const { data } = await axios.post(ENDPOINTS.FETCH_URL_FORMATS, { url });
+        // this.stateStore.addTask({ id: id, name: data.title  })
+
+        this.loadedformats[id] = {
+          formats: data.streams || {},
+          status: 'ready',
+          title: data.info.title,
+          artist: data.info.artist,
+          views: data.info.views,
+          thumbnail: getYouTubeThumbnail(url),
+          url: url
+        }
+
+        const endTime = performance.now();
+        // console.log(`Loaded file meta:`, data, `in ${(endTime - startTime).toFixed(2)} ms`);
+
+        // return data; // return the metadata if needed
+
+      } catch (error) {
+        console.error(`Failed to fetch metadata for URL [${url}]:`, error);
+        throw error;
       }
     }
-
-
 
   }
 });

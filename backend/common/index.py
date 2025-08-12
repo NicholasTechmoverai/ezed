@@ -419,6 +419,7 @@ class StreamMeta:
                     "artist": info.get("uploader"),
                     "description": info.get("description"),
                     "views": info.get("view_count", 0),
+                    "url":link
                 },
             }
 

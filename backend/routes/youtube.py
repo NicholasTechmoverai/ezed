@@ -56,7 +56,6 @@ async def download_instagram(
         if not data.url:
             raise HTTPException(status_code=400, detail="URL is required")
 
-
         # Set default extension if not provided
         file_ext = data.ext or "mp4"
         content_type = mimetypes.guess_type(f"file.{file_ext}")[0] or "video/mp4"
@@ -71,7 +70,10 @@ async def download_instagram(
 
         async def generate():
             async for chunk in downloader.download_stream(
-                url=data.url, itag=data.itag, start_byte=data.start_byte, token=current["token"]
+                url=data.url,
+                itag=data.itag,
+                start_byte=data.start_byte,
+                token=current["token"],
             ):
                 yield chunk
 
@@ -129,7 +131,7 @@ class DownloadMetatRequest(BaseModel):
 
 
 @youtube_router.post("/download-meta")
-@limiter.limit("5/min")
+@limiter.limit("60/min")
 async def get_download_meta(request: Request, data: DownloadMetatRequest):
     if not data.url:
         raise HTTPException(status_code=400, detail="URL is required")
@@ -137,6 +139,29 @@ async def get_download_meta(request: Request, data: DownloadMetatRequest):
     try:
         async with StreamMeta() as stream_meta:
             r = await stream_meta.get_download_info(data.url, data.itag)
+
+        return r
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to process download meta: {str(e)}"
+        )
+
+
+
+class GetFormatstRequest(BaseModel):
+    url: str
+
+
+@youtube_router.post("/get-formats")
+@limiter.limit("60/min")
+async def get_url_formats(request: Request, data: GetFormatstRequest):
+    if not data.url:
+        raise HTTPException(status_code=400, detail="URL is required")
+
+    try:
+        async with StreamMeta() as stream_meta:
+            r = await stream_meta.fetch_streams(data.url)
 
         return r
 

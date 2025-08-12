@@ -49,7 +49,8 @@ const handleOpenById = (id) => {
   const task = stateStore.openedTasks.find(t => t.id === id)
   if (task) {
     activeTaskId.value = id
-    router.push(task.url)
+
+    router.push(task.url?task.url:`/h/yt/${id}`)
   }
 }
 

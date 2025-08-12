@@ -10,7 +10,11 @@ export const ENDPOINTS = {
   VERIFY_CODES: `${BASE_URL}/api/verify_reset_codes`,
   RESET_PASSWORD: `${BASE_URL}/api/reset_email_password`,
   REFRESH_TOKEN: `${BASE_URL}/api/auth/refresh`,
-  USER_PROFILE: (id) => `${BASE_URL}/api/user/${id}`
+  USER_PROFILE: (id) => `${BASE_URL}/api/user/${id}`,
+  DOWNLOAD_FILE: (id) => `${BASE_URL}/api/user/${id}`,
+  FETCH_LIST_SONGS: `${BASE_URL}/api/yt/download-meta`,
+  FETCH_URL_FORMATS: `${BASE_URL}/api/yt/get-formats`,
+  // FETCH_URL_FORMATS:`${BASE_URL}/yt/download-meta`
 }
 
 

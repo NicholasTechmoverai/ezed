@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen p-4 flex items-center justify-center">
+  <div class="min-h-screen p-4 flex flex-col items-center ">
     <transition name="fade-slide" mode="out-in">
       <n-card v-if="loading" hoverable :bordered="false" class="max-w-sm w-full mx-auto transition-all duration-300"
         :content-style="{ padding: 0 }">
@@ -32,15 +32,15 @@
             <div class="absolute inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center transition-opacity z-50"
               :class="isLoaderActive ? 'opacity-100' : 'opacity-0'">
               <transition name="zoom" mode="out-in">
-                <div v-if="downloadStatus === STATUS_CONFIG.merging.message" key="merging" class="text-center p-4">
+                <div v-if="downloadStatus === STATUS_CONFIG.merging.key" key="merging" class="text-center p-4">
                   <n-progress type="circle" :percentage="mergeProgress" status="info" size="large"
                     :stroke-width="8" :gap-position="'bottom'">
                     <span class="text-white text-sm font-medium">{{ mergeProgress }}%</span>
                   </n-progress>
                   <p class="mt-3 text-white font-medium">Merging files...</p>
                 </div>
-                <div v-else-if="downloadStatus === STATUS_CONFIG.starting.message || 
-                                downloadStatus === STATUS_CONFIG.processing.message" 
+                <div v-else-if="downloadStatus === STATUS_CONFIG.starting.key || 
+                                downloadStatus === STATUS_CONFIG.processing.key" 
                      key="processing" class="text-center">
                   <n-spin size="large" :stroke-width="12" />
                   <p class="mt-3 text-white font-medium">Preparing download...</p>
@@ -79,7 +79,7 @@
               <template #icon>
                 <n-icon :component="statusIcon" />
               </template>
-              {{ statusMessage }}
+              {{ downloadStatus }}
             </n-tag>
 
             <n-tooltip trigger="hover" >
@@ -262,12 +262,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch,onUnmounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useThemeVars } from 'naive-ui'
 import {
   ImageOutline,
   PlayOutline,
   PauseOutline,
+  CloseCircleOutline,
   DownloadOutline,
   EyeOutline,
   EyeOffOutline,
@@ -287,6 +288,7 @@ import router from '../router'
 import { STATUS_CONFIG } from '../utils'
 import { useUserStore } from '../store/userStore'
 
+
 // Props
 const props = defineProps({
   id: {
@@ -299,14 +301,11 @@ const props = defineProps({
 const themeVars = useThemeVars()
 const message = useMessage()
 const downloadStore = useDownloadStore()
-const userStore = useUserStore()
 
 // State
 const isLoaderActive = ref(true)
 const localFileData = ref(null)
 const loading = ref(true)
-const lastUpdate = ref(Date.now())
-const speedSamples = ref([])
 
 // Computed
 const fileThumbnail = computed(() => localFileData.value?.thumbnail || defaultThumbnail)
@@ -316,6 +315,7 @@ const fileName = computed(() => {
 })
 const fileExtension = computed(() => {
   const ext = localFileData.value?.extension ||
+    localFileData.value?.ext ||
     'file'
   return ext.toUpperCase()
 })
@@ -324,7 +324,7 @@ const downloadStatus = computed(() => localFileData.value?.status || 'default')
 const statusTagType = computed(() => STATUS_CONFIG[downloadStatus.value]?.type || 'default')
 const statusIcon = computed(() => STATUS_CONFIG[downloadStatus.value]?.icon || null)
 const statusMessage = computed(() => STATUS_CONFIG[downloadStatus.value]?.message || 'Unknown')
-const showDownloadProgress = computed(() => ['active', 'paused', 'downloading', 'merging'].includes(downloadStatus.value))
+const showDownloadProgress = computed(() => ['active', 'paused', 'downloading','processing', 'merging'].includes(downloadStatus.value.toLowerCase()))
 const progressColor = computed(() => {
   switch (downloadStatus.value) {
     case 'active': return themeVars.value.primaryColor
@@ -337,69 +337,46 @@ const progressColor = computed(() => {
 })
 const progressRailColor = computed(() => changeColor('gray', { alpha: 0.2 }))
 
-// Optimized computed properties
-const hasAudio = computed(() => {
-  return !!localFileData.value?.a_filesize || 
-         audioDownloadPercentage.value > 0 || 
-         localFileData.value?.hasAudio
-})
-
-const totalFileSize = computed(() => {
-  return hasAudio.value 
-    ? (localFileData.value?.filesize || 0) + (localFileData.value?.a_filesize || 0)
-    : localFileData.value?.filesize || 0
-})
-
-const totalDownloaded = computed(() => {
-  return hasAudio.value
-    ? (localFileData.value?.downloadedSize || 0) + (localFileData.value?.a_downloadedSize || 0)
-    : localFileData.value?.downloadedSize || 0
-})
-
+// Download progress
 const averageDownloadPercentage = computed(() => {
-  return totalFileSize.value
-    ? Math.min(100, Math.round((totalDownloaded.value / totalFileSize.value) * 100))
-    : 0
+  if (!localFileData.value?.filesize) return 0
+
+  if (!hasAudio.value) {
+    return Math.min(100, Math.round((localFileData.value?.downloadedSize / localFileData.value?.filesize) * 100) || 0)
+  }
+
+  const videoProgress = localFileData.value.downloadedSize / localFileData.value.filesize
+  const audioProgress = localFileData.value.a_downloadedSize / localFileData.value.a_filesize
+  return Math.min(100, Math.round(((videoProgress + audioProgress) / 2) * 100))
 })
 
 const downloadPercentage = computed(() => {
-  return localFileData.value?.filesize
-    ? Math.min(100, Math.round((localFileData.value.downloadedSize / localFileData.value.filesize) * 100))
-    : 0
+  if (!localFileData.value?.filesize) return 0
+  return Math.min(100, Math.round((localFileData.value?.downloadedSize / localFileData.value?.filesize) * 100) || 0)
 })
 
 const audioDownloadPercentage = computed(() => {
-  return localFileData.value?.a_filesize
-    ? Math.min(100, Math.round((localFileData.value.a_downloadedSize / localFileData.value.a_filesize) * 100))
-    : 0
+  if (!localFileData.value?.a_filesize) return 0
+  return Math.min(100, Math.round((localFileData.value?.a_downloadedSize / localFileData.value?.a_filesize) * 100) || 0)
 })
 
 const downloadSpeed = computed(() => {
-  if (speedSamples.value.length === 0) return '0 KB/s'
-  
-  // Calculate average speed from samples
-  const avgSpeed = speedSamples.value.reduce((sum, speed) => sum + speed, 0) / speedSamples.value.length
-  return formatSpeed(avgSpeed)
+  const speed = localFileData.value?.downloadSpeedMbps
+  return speed ? `${speed}` : '0 KB/s'
 })
 
 const timeRemaining = computed(() => {
-  if (!localFileData.value?.filesize || downloadStatus.value !== 'active') return '--:--'
-  
-  const remainingBytes = totalFileSize.value - totalDownloaded.value
-  if (remainingBytes <= 0) return '00:00'
-
-  const currentSpeed = speedSamples.value[speedSamples.value.length - 1] || 0
-  if (currentSpeed <= 0) return '--:--'
-
-  const seconds = Math.ceil(remainingBytes / currentSpeed)
-  return formatTime(seconds)
+  const eta = localFileData.value?.eta
+  return eta || '--:--'
 })
 
 const remainingSize = computed(() => {
-  return Math.max(0, totalFileSize.value - totalDownloaded.value)
+  if (!localFileData.value?.filesize) return 0
+  return Math.max(0, localFileData.value.filesize - (localFileData.value.downloadedSize || 0))
 })
 
 const mergeProgress = computed(() => localFileData.value?.merge_progress || 0)
+const hasAudio = computed(() => audioDownloadPercentage.value || localFileData.value?.hasAudio || false)
 
 // Methods
 const fetchFileData = async () => {
@@ -430,20 +407,14 @@ const fetchFileData = async () => {
 const toggleLoader = () => {
   isLoaderActive.value = !isLoaderActive.value
 }
-
+const userStore = useUserStore()
 const startDownload = async () => {
   try {
     message.loading('Starting download...')
-    await downloadStore.download_file(
-      `${localFileData.value.key || 'inst'}/${userStore.user?.username}/download`,
-      props.id,
-      localFileData.value?.url,
-      localFileData.value.itag,
-      localFileData.value.format
-    )
+    await downloadStore.download_file(`${localFileData.value.key || 'inst'}/${userStore.user?.username}/download`, props.id, localFileData.value?.url,localFileData.value.itag, localFileData.value.format)
     message.success('Download started successfully')
   } catch (error) {
-    message.error('Failed to start download: ' + error.message)
+    message.error('Failed to start download')
     console.error('Download error:', error)
   }
 }
@@ -469,7 +440,7 @@ const cancelDownload = async () => {
       message.info('Download cancelled')
     }
   } catch (error) {
-    message.error('Failed to cancel download: ' + error.message)
+    message.error('Failed to cancel download')
     console.error('Cancel error:', error)
   }
 }
@@ -494,25 +465,10 @@ const showMeta = () => {
 }
 
 const formatFileSize = (bytes) => {
-  if (!bytes || bytes <= 0) return '0 Bytes'
+  if (!bytes) return '0 Bytes'
   const units = ['Bytes', 'KB', 'MB', 'GB']
-  const exponent = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1)
-  const value = bytes / Math.pow(1024, exponent)
-  return `${value.toFixed(exponent > 0 ? 2 : 0)} ${units[exponent]}`
-}
-
-const formatSpeed = (bytesPerSecond) => {
-  if (bytesPerSecond <= 0) return '0 KB/s'
-  if (bytesPerSecond < 1024) return `${Math.round(bytesPerSecond)} B/s`
-  if (bytesPerSecond < 1048576) return `${(bytesPerSecond / 1024).toFixed(1)} KB/s`
-  return `${(bytesPerSecond / 1048576).toFixed(1)} MB/s`
-}
-
-const formatTime = (seconds) => {
-  if (seconds <= 0) return '00:00'
-  const mins = Math.floor(seconds / 60)
-  const secs = Math.floor(seconds % 60)
-  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+  const i = Math.floor(Math.log(bytes) / Math.log(1024))
+  return `${(bytes / Math.pow(1024, i)).toFixed(i ? 2 : 0)} ${units[i]}`
 }
 
 const changeColor = (color, options = { alpha: 1 }) => {
@@ -520,25 +476,6 @@ const changeColor = (color, options = { alpha: 1 }) => {
     .map((c, i) => i === 3 ? options.alpha : c.trim())
     .join(',')
     .replace(/(\d+),(\d+),(\d+)(?:,[\d.]+)?/, `rgba($1,$2,$3,${options.alpha})`)
-}
-
-const updateDownloadSpeed = () => {
-  if (!localFileData.value || downloadStatus.value !== 'active') return
-  
-  const now = Date.now()
-  const timeDiff = (now - lastUpdate.value) / 1000 // in seconds
-  if (timeDiff < 0.5) return // Don't update too frequently
-
-  const downloadedDiff = totalDownloaded.value - (localFileData.value.lastDownloadedSize || 0)
-  const currentSpeed = downloadedDiff / timeDiff // bytes per second
-  
-  // Update last values
-  lastUpdate.value = now
-  localFileData.value.lastDownloadedSize = totalDownloaded.value
-
-  // Store sample (keep last 5 samples)
-  speedSamples.value.push(currentSpeed)
-  if (speedSamples.value.length > 5) speedSamples.value.shift()
 }
 
 // Watchers
@@ -549,23 +486,12 @@ watch(
   (newValue) => {
     if (newValue) {
       localFileData.value = newValue
-      lastUpdate.value = Date.now()
-      speedSamples.value = []
     }
   },
   { deep: true }
 )
-
-// Setup periodic speed updates
-let speedInterval
-onMounted(() => {
-  speedInterval = setInterval(updateDownloadSpeed, 1000)
-})
-
-onUnmounted(() => {
-  clearInterval(speedInterval)
-})
 </script>
+
 
 <style scoped>
 /* Custom transitions */

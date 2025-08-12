@@ -34,14 +34,14 @@ export const getSiteByKey = (key) => {
     return allSites.find(site => site.key === key) || null
 }
 
-export const getSiteKeyFromURL = (url) => {
+export const getSiteKeyFromURL = async(url) => {
   try {
     const hostname = new URL(url).hostname.toLowerCase(); // e.g. "youtu.be"
     return allSites.find(site =>
       site.label.toLowerCase().startsWith(hostname) || hostname.startsWith(site.label.toLowerCase())
-    )?.key || null;
+    )?.key || 'yt';
   } catch {
-    return null;
+    return "yt";
   }
 }
 
