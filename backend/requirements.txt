@@ -21,3 +21,4 @@ yt_dlp
 pytube
 instaloader
 TikTokApi
+spotipy

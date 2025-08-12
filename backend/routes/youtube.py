@@ -16,7 +16,12 @@ from models import User as Users
 from typing import Optional
 from utils.logger import setup_logger
 from utils.auth import get_current_user
-from common.index import StreamDownloader, StreamMeta
+from common.index import StreamDownloader, StreamMeta, SearchHandler
+
+
+from dotenv import load_dotenv
+
+load_dotenv()
 
 logger = setup_logger("TIKTOK ROUTES")
 youtube_router = APIRouter()
@@ -148,7 +153,6 @@ async def get_download_meta(request: Request, data: DownloadMetatRequest):
         )
 
 
-
 class GetFormatstRequest(BaseModel):
     url: str
 
@@ -162,6 +166,23 @@ async def get_url_formats(request: Request, data: GetFormatstRequest):
     try:
         async with StreamMeta() as stream_meta:
             r = await stream_meta.fetch_streams(data.url)
+
+        return r
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to process download meta: {str(e)}"
+        )
+
+
+@youtube_router.get("/search")
+@limiter.limit("60/min")
+async def search(request: Request, q: str = Query(..., min_length=1)):
+    try:
+        api_key = os.getenv("YOUTUBE_API_KEY")
+
+        search_handler =  SearchHandler(api_key=api_key)
+        r = await search_handler.search(q)
 
         return r
 

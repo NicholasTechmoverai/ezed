@@ -107,3 +107,16 @@ export async function getItagWithAudio(clickedItag, formats) {
 
   return clickedItag;
 }
+
+
+
+export const AUTO_DOWNLOAD_FORMATS = [
+  // WebM (VP9) + Audio 140 (Best Quality)
+  { label: '2160p (4K WebM)', key: '313+140' ,value: '313+140'},
+  { label: '1440p (WebM)', key: '272+251' ,value: '272+251'},
+  { label: '1080p (WebM)', key: '248+140' ,value: '248+140'},
+  { label: '720p (WebM)', key: '247+140' ,value: '247+140'},
+  { label: '480p (WebM)', key: '244+140' ,value: '244+140'},
+  { label: '360p (MP4 - Single File)', key: '18' ,value: '18'},
+  { label: 'mp3 (audio)', key: '140' ,value: '140'},
+];

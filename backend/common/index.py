@@ -18,7 +18,14 @@ import os
 import requests
 from pytube import Search
 
+import spotipy, json, os
+from dotenv import load_dotenv
+from spotipy.oauth2 import SpotifyClientCredentials
+load_dotenv()
+client_id = os.getenv("SPOTIPY_CLIENT_ID")
+client_secret = os.getenv("SPOTIPY_CLIENT_SECRET")
 
+sp = spotipy.Spotify(auth_manager=SpotifyClientCredentials(client_id, client_secret))
 
 def check_ffmpeg_available():
     if not shutil.which("ffmpeg"):
@@ -64,7 +71,9 @@ class StreamDownloader:
             "x.com": self._handle_twitter,
         }
 
-    async def download_stream(self, url: str, itag: str = "best", start_byte: int = 0,token:str=None):
+    async def download_stream(
+        self, url: str, itag: str = "best", start_byte: int = 0, token: str = None
+    ):
         """
         Universal streaming downloader for multiple platforms
         """
@@ -153,7 +162,7 @@ class StreamDownloader:
                                 "messageType": "error",
                             })
                             async for chunk in self._handle_youtube(
-                                url, trial_itag, start_byte, failed_itags,token
+                                url, trial_itag, start_byte, failed_itags, token
                             ):
                                 yield chunk
                             return
@@ -197,11 +206,11 @@ class StreamDownloader:
                                 })
                                 try:
                                     async for chunk in self._handle_youtube(
-                                        url, trial_itag, start_byte, failed_itags,token
+                                        url, trial_itag, start_byte, failed_itags, token
                                     ):
                                         yield chunk
                                     return  # Success
-                                
+
                                 except Exception as retry_err:
                                     await notifications_namespace.trigger_notification({
                                         "room": str(token),
@@ -231,8 +240,9 @@ class StreamDownloader:
                     "messageType": "error",
                 })
 
-
-    async def _handle_instagram(self, url: str, itag: str, start_byte: int ,ailed_itags=None, token=None):
+    async def _handle_instagram(
+        self, url: str, itag: str, start_byte: int, ailed_itags=None, token=None
+    ):
         """Instagram streaming handler"""
         ydl_opts = {
             "format": "best",
@@ -251,7 +261,9 @@ class StreamDownloader:
             async for chunk in self._stream_from_url(info["url"], start_byte):
                 yield chunk
 
-    async def _handle_tiktok(self, url: str, itag: str, start_byte: int,ailed_itags=None, token=None):
+    async def _handle_tiktok(
+        self, url: str, itag: str, start_byte: int, ailed_itags=None, token=None
+    ):
         """TikTok streaming handler"""
         ydl_opts = {
             "format": "best",
@@ -270,7 +282,9 @@ class StreamDownloader:
             async for chunk in self._stream_from_url(info["url"], start_byte):
                 yield chunk
 
-    async def _handle_facebook(self, url: str, itag: str, start_byte: int,ailed_itags=None, token=None):
+    async def _handle_facebook(
+        self, url: str, itag: str, start_byte: int, ailed_itags=None, token=None
+    ):
         """Facebook streaming handler"""
         ydl_opts = {
             "format": "best",
@@ -289,7 +303,9 @@ class StreamDownloader:
             async for chunk in self._stream_from_url(info["url"], start_byte):
                 yield chunk
 
-    async def _handle_twitter(self, url: str, itag: str, start_byte: int,ailed_itags=None, token=None):
+    async def _handle_twitter(
+        self, url: str, itag: str, start_byte: int, ailed_itags=None, token=None
+    ):
         """Twitter/X streaming handler"""
         ydl_opts = {
             "format": "best",
@@ -413,20 +429,20 @@ class StreamMeta:
 
         try:
             info = await self._extract_info(link, ydl_opts)
-            duration = info.get("duration", 0) 
+            duration = info.get("duration", 0)
 
             formats = [
-                f for f in info.get("formats", [])
-                if f.get("ext") == "webm" or (f.get("format_id") in audio_formats )
+                f
+                for f in info.get("formats", [])
+                if f.get("ext") == "webm" or (f.get("format_id") in audio_formats) or f.get("format_id")  == '18'
             ]
-
 
             streams = []
             for f in formats:
                 filesize = (
-                    f.get("filesize") or
-                    f.get("filesize_approx") or
-                    None  # Avoid network fetch unless really needed
+                    f.get("filesize")
+                    or f.get("filesize_approx")
+                    or None  # Avoid network fetch unless really needed
                 )
                 if filesize is None:
                     filesize = await self._parse_clen_from_url(f.get("url"))
@@ -451,13 +467,12 @@ class StreamMeta:
                     "description": info.get("description"),
                     "views": info.get("view_count", 0),
                     "duration_sec": duration,
-                    "url": link
+                    "url": link,
                 },
             }
 
         except Exception as e:
             return {"success": False, "message": f"Error: {str(e)}"}
-
 
     async def _parse_clen_from_url(self, url: str) -> Union[int, None]:
         """Parse content length from URL parameters if available."""
@@ -527,93 +542,90 @@ class StreamMeta:
 
 
 # async def _handle_youtube(self, url: str, itag: str, start_byte: int, timeout: int = 30, failed_itags=None):
-    #     """YouTube streaming handler with retry + resolution fallback."""
-    #     if failed_itags is None:
-    #         failed_itags = []
+#     """YouTube streaming handler with retry + resolution fallback."""
+#     if failed_itags is None:
+#         failed_itags = []
 
-    #     try:
-    #         ydl_opts = {
-    #             'format': itag,
-    #             'noplaylist': True,
-    #             'quiet': True,
-    #             'extract_flat': False,
-    #         }
+#     try:
+#         ydl_opts = {
+#             'format': itag,
+#             'noplaylist': True,
+#             'quiet': True,
+#             'extract_flat': False,
+#         }
 
-    #         # Remove playlist identifiers for cleaner URL
-    #         url = url.split('?list')[0].split('&list')[0]
+#         # Remove playlist identifiers for cleaner URL
+#         url = url.split('?list')[0].split('&list')[0]
 
-    #         loop = asyncio.get_event_loop()
-    #         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-    #             info = await loop.run_in_executor(None, lambda: ydl.extract_info(url, download=False))
-    #             media_url = next(
-    #                 (fmt['url'] for fmt in info.get('formats', [])
-    #                 if str(fmt.get('format_id')) == str(itag)),
-    #                 None
-    #             )
+#         loop = asyncio.get_event_loop()
+#         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+#             info = await loop.run_in_executor(None, lambda: ydl.extract_info(url, download=False))
+#             media_url = next(
+#                 (fmt['url'] for fmt in info.get('formats', [])
+#                 if str(fmt.get('format_id')) == str(itag)),
+#                 None
+#             )
 
-    #             if not media_url:
-    #                 available = [f['format_id'] for f in info.get('formats', [])]
-    #                 raise ValueError(f"Format {itag} not available. Existing formats: {available}")
+#             if not media_url:
+#                 available = [f['format_id'] for f in info.get('formats', [])]
+#                 raise ValueError(f"Format {itag} not available. Existing formats: {available}")
 
-    #             async for chunk in self._stream_from_url(media_url, start_byte):
-    #                 yield chunk
+#             async for chunk in self._stream_from_url(media_url, start_byte):
+#                 yield chunk
 
-    #     except Exception as e:
-    #         if "Requested format is not available" in str(e):
-    #             logger.error("YouTube streaming failed for itag %s: %s", itag, str(e))
-    #             failed_itags.append(itag)
+#     except Exception as e:
+#         if "Requested format is not available" in str(e):
+#             logger.error("YouTube streaming failed for itag %s: %s", itag, str(e))
+#             failed_itags.append(itag)
 
-    #             # AUDIO FALLBACK
-    #             if itag in audio_formats:
-    #                 for trial_itag in audio_formats:
-    #                     if trial_itag not in failed_itags:
-    #                         logger.info("Retrying with audio itag %s", trial_itag)
-    #                         async for chunk in self._handle_youtube(url, trial_itag, start_byte, timeout, failed_itags):
-    #                             yield chunk
-    #                         return
+#             # AUDIO FALLBACK
+#             if itag in audio_formats:
+#                 for trial_itag in audio_formats:
+#                     if trial_itag not in failed_itags:
+#                         logger.info("Retrying with audio itag %s", trial_itag)
+#                         async for chunk in self._handle_youtube(url, trial_itag, start_byte, timeout, failed_itags):
+#                             yield chunk
+#                         return
 
-    #             # VIDEO FALLBACK WITH RESOLUTION STEP-DOWN
-    #             else:
-    #                 # Find current resolution
-    #                 current_res = None
-    #                 for res, formats in video_formats.items():
-    #                     if itag in formats:
-    #                         current_res = res
-    #                         break
+#             # VIDEO FALLBACK WITH RESOLUTION STEP-DOWN
+#             else:
+#                 # Find current resolution
+#                 current_res = None
+#                 for res, formats in video_formats.items():
+#                     if itag in formats:
+#                         current_res = res
+#                         break
 
-    #                 if current_res is not None:
-    #                     # Create list of resolutions from current downwards
-    #                     resolutions_to_try = sorted(
-    #                         [r for r in video_formats.keys() if r <= current_res],
-    #                         reverse=True
-    #                     )
+#                 if current_res is not None:
+#                     # Create list of resolutions from current downwards
+#                     resolutions_to_try = sorted(
+#                         [r for r in video_formats.keys() if r <= current_res],
+#                         reverse=True
+#                     )
 
-    #                     for res in resolutions_to_try:
-    #                         # If we're stepping to a lower resolution, skip remaining formats of previous one
-    #                         if res < current_res:
-    #                             logger.info("Stepping down to %sp fallback", res)
+#                     for res in resolutions_to_try:
+#                         # If we're stepping to a lower resolution, skip remaining formats of previous one
+#                         if res < current_res:
+#                             logger.info("Stepping down to %sp fallback", res)
 
-    #                         for trial_itag in video_formats[res]:
-    #                             if trial_itag in failed_itags:
-    #                                 continue
+#                         for trial_itag in video_formats[res]:
+#                             if trial_itag in failed_itags:
+#                                 continue
 
-    #                             logger.info("Retrying with %sp (itag %s)", res, trial_itag)
-    #                             try:
-    #                                 async for chunk in self._handle_youtube(url, trial_itag, start_byte, timeout, failed_itags):
-    #                                     yield chunk
-    #                                 return  # Success
-    #                             except Exception as retry_err:
-    #                                 logger.error("Failed with itag %s (%sp): %s", trial_itag, res, retry_err)
-    #                                 failed_itags.append(trial_itag)
+#                             logger.info("Retrying with %sp (itag %s)", res, trial_itag)
+#                             try:
+#                                 async for chunk in self._handle_youtube(url, trial_itag, start_byte, timeout, failed_itags):
+#                                     yield chunk
+#                                 return  # Success
+#                             except Exception as retry_err:
+#                                 logger.error("Failed with itag %s (%sp): %s", trial_itag, res, retry_err)
+#                                 failed_itags.append(trial_itag)
 
-    #             logger.error("All fallback formats failed for %s", url)
+#             logger.error("All fallback formats failed for %s", url)
 
-    #         else:
-    #             logger.error("Streaming YouTube failed: %s", str(e))
-    
-    
-    
-    
+#         else:
+#             logger.error("Streaming YouTube failed: %s", str(e))
+
 
 class SearchHandler:
     def __init__(self, api_key: str):
@@ -664,8 +676,8 @@ class SearchHandler:
             return [
                 {
                     "title": item["snippet"]["title"],
-                    "url": f'https://www.youtube.com/watch?v={item["id"]["videoId"]}',
-                    "Stype": "youtube"
+                    "url": f"https://www.youtube.com/watch?v={item['id']['videoId']}",
+                    "Stype": "youtube",
                 }
                 for item in data.get("items", [])
                 if "videoId" in item.get("id", {})
@@ -692,22 +704,20 @@ class SearchHandler:
 #     print(results)
 
 
-import spotipy,json,os
-
-from spotipy.oauth2 import SpotifyClientCredentials
-client_id = os.getenv('SPOTIPY_CLIENT_ID')
-client_secret = os.getenv('SPOTIPY_CLIENT_SECRET')
-
-sp = spotipy.Spotify(auth_manager=SpotifyClientCredentials(client_id, client_secret))
 
 async def Search_suggestions_spotify(search):
     try:
         results = await asyncio.to_thread(sp.search, q=search, type="track", limit=10)
         # print(results)
-        
+
         suggestions = [
-            {"name": track['name'], "artist": track['artists'][0]['name'],"is_loal":False}
-            for track in results['tracks']['items']
+            {
+                "name": track["name"],
+                "artist": track["artists"][0]["name"],
+                "is_loal": False,
+                "id": track["id"],
+            }
+            for track in results["tracks"]["items"]
         ]
         return suggestions
     except Exception as e:

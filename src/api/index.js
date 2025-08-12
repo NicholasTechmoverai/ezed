@@ -14,7 +14,7 @@ export const ENDPOINTS = {
   DOWNLOAD_FILE: (id) => `${BASE_URL}/api/user/${id}`,
   FETCH_LIST_SONGS: `${BASE_URL}/api/yt/download-meta`,
   FETCH_URL_FORMATS: `${BASE_URL}/api/yt/get-formats`,
-  // FETCH_URL_FORMATS:`${BASE_URL}/yt/download-meta`
+  YOUTUBE_SEARCH: `${BASE_URL}/api/yt/search`
 }
 
 

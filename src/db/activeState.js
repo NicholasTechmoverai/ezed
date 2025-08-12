@@ -1,7 +1,7 @@
 import { openDB } from 'idb'
 
 const DB_NAME = 'active_state-db'
-const STORE_NAME = 'openedTasks' 
+const STORE_NAME = 'openedTasks'
 
 export async function getDB() {
   return openDB(DB_NAME, 1, {

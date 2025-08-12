@@ -40,7 +40,7 @@ export function useFfmpeg() {
     cleanupListeners();
 
     try {
-      console.log('FFmpeg initialization');
+      // console.log('FFmpeg initialization');
     } catch (err) {
       error.value = err.message || 'Failed to initialize FFmpeg';
       console.error('FFmpeg initialization error:', err);
@@ -61,13 +61,13 @@ export function useFfmpeg() {
     };
 
     try {
-      console.log('Initializing FFmpeg...');
+      // console.log('Initializing FFmpeg...');
 
       await ffmpeg.load();
-      console.log('FFmpeg initialized successfully');
+      // console.log('FFmpeg initialized successfully');
 
 
-      ffmpeg.on('log', ({ message }) => console.debug(`[${id}] FFmpeg:`, message));
+      // ffmpeg.on('log', ({ message }) => console.debug(`[${id}] FFmpeg:`, message));
       ffmpeg.on('progress', ({ progress }) => {
         const percent = Math.round(progress * 100);
         if (id) {

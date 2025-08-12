@@ -101,6 +101,7 @@ import { useMessage } from 'naive-ui'
 import { useDownloadStore } from '../store/downloadStore'
 import { useStateStore } from '../store/stateStore'
 import { generateUUID } from '../reusables'
+import { AUTO_DOWNLOAD_FORMATS } from '../utils/others'
 const downloadStore = useDownloadStore()
 const route = useRoute()
 const abb_r = ref("yt")
@@ -283,28 +284,20 @@ const columns = [
     width: 200,
     render: (row) => row.url
   },
-  // {
-  //   title: 'Duration',
-  //   key: 'duration',
-  //   width: 100,
-  //   align: 'center'
-  // },
-  // {
-  //   title: 'Format',
-  //   key: 'format',
-  //   width: 100,
-  //   filterOptions: [
-  //     { label: 'MP3', value: 'MP3' },
-  //     { label: 'MP4', value: 'MP4' },
-  //     { label: 'FLAC', value: 'FLAC' }
-  //   ],
-  //   filter: (value, row) => row.format?.includes(value)
-  // },
-  // {
-  //   title: 'Quality',
-  //   key: 'quality',
-  //   width: 100
-  // },
+
+   {
+    title: 'Format',
+    key: 'format',
+    width: 100,
+    filterOptions: [
+     AUTO_DOWNLOAD_FORMATS.map(format => ({
+        label: format,
+        value: format
+      }))
+    ],
+    filter: (value, row) => row.format?.includes(value)
+  },
+  
   {
     title: 'Time',
     key: 'time',

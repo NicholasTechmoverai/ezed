@@ -162,7 +162,8 @@ export const useDownloadStore = defineStore('downloadStore', {
         url: url,
         itag: itag,
         format: format || extension,
-        islist: false
+        islist: false,
+        thumbnail: abb_r === 'yt' ? getYouTubeThumbnail(url) : undefined
       })
 
       this.stateStore.addTask({ id, name: `${filename}`, url: `/h/${abb_r}/${id}`, time: Date.now() });
@@ -373,7 +374,7 @@ export const useDownloadStore = defineStore('downloadStore', {
       }
 
 
-      console.log(this.onGoingDownloads[id])
+      // console.log(this.onGoingDownloads[id])
 
       if (blobOrUrl instanceof Blob) {
         const url = URL.createObjectURL(blobOrUrl);
@@ -442,7 +443,7 @@ export const useDownloadStore = defineStore('downloadStore', {
         const startTime = performance.now();
 
         const { data } = await axios.post(ENDPOINTS.FETCH_LIST_SONGS, { url, itag });
-        this.stateStore.addTask({ id: id, name: data.title })
+        this.stateStore.addTask({ id: id, name: data.title || data.filename  });
         await this.update_download_progress({
           id,
           downloadName: data.filename,
@@ -453,7 +454,7 @@ export const useDownloadStore = defineStore('downloadStore', {
         });
 
         const endTime = performance.now();
-        console.log(`Loaded file meta:`, data, `in ${(endTime - startTime).toFixed(2)} ms`);
+        // console.log(`Loaded file meta:`, data, `in ${(endTime - startTime).toFixed(2)} ms`);
 
         // return data; // return the metadata if needed
 

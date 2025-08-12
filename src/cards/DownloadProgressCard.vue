@@ -23,7 +23,7 @@
 
       <!-- Actual Content -->
       <n-card v-else-if="localFileData || !loading" hoverable :bordered="false"
-        class="max-w-sm w-full mx-auto transition-all duration-300 hover:shadow-xl dark:hover:shadow-lg dark:hover:shadow-neutral-800/50 rounded-2xl overflow-hidden"
+        class="max-w-sm w-full mx-auto transition-all duration-300 hover:shadow-xl dark:hover:shadow-lg dark:hover:shadow-neutral-800/50 overflow-hidden"
         :content-style="{ padding: 0 }">
         <div class="flex flex-col">
           
@@ -61,8 +61,8 @@
               </transition>
             </div>
 
-        <n-image :src="fileThumbnail" :fallback-src="defaultThumbnail"
-              class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 z-30"
+        <n-image :src="fileThumbnail" :fallback-src="defaultThumbnail" width="100%"
+              class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 border z-30"
               preview-disabled>
               <template #error>
                 <div class="w-full h-full bg-gradient-to-br from-indigo-500 to-purple-600 flex flex-col items-center justify-center p-4">

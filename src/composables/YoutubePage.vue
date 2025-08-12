@@ -22,7 +22,7 @@ import { useRouter, useRoute } from 'vue-router'
 const tabs = [
   { name: 'wonderwall', url: '/h/yt/wonder-wall', label: 'Wonderwall' },
   { name: 'automatic', url: '/h/yt/automatic', label: 'Automatic Mode' },
-  { name: 'custom-config', url: '/h/yt/custom-config', label: 'Custom Settings' }
+  { name: 'custom-config', url: '/h/yt/custom-config', label: 'Manual Mode' }
 ]
 
 const router = useRouter()

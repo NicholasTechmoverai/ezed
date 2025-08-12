@@ -53,7 +53,7 @@
         </Transition>
       </n-card>
 
-      <n-dropdown trigger="hover" :options="formats" @select="handleSelect">
+      <n-dropdown trigger="hover" :options="AUTO_DOWNLOAD_FORMATS" @select="handleSelect">
         <n-button>{{ showFormat.label }}</n-button>
       </n-dropdown>
 
@@ -83,7 +83,7 @@ import { useStateStore } from '../store/stateStore'
 import { useDownloadStore } from '../store/downloadStore'
 import { saveFile } from '../db/download'
 import { useMessage } from 'naive-ui'
-import { normalizeYouTubeUrl } from '../utils/others'
+import { AUTO_DOWNLOAD_FORMATS, normalizeYouTubeUrl } from '../utils/others'
 import { STATUS_CONFIG } from '../utils'
 
 const stateStore = useStateStore()
@@ -119,16 +119,6 @@ const handleSelect = (key) => {
   itag.value = key
 }
 
-const formats = [
-  // WebM (VP9) + Audio 140 (Best Quality)
-  { label: '2160p (4K WebM)', key: '313+140' },
-  { label: '1440p (WebM)', key: '272+251' },
-  { label: '1080p (WebM)', key: '248+140' },
-  { label: '720p (WebM)', key: '247+140' },
-  { label: '480p (WebM)', key: '244+140' },
-  { label: '360p (MP4 - Single File)', key: '18' },
-  { label: 'mp3 (audio)', key: '140' },
-];
 
 watch(
   [url, () => isMix.value],
@@ -156,8 +146,8 @@ watch(
 
 
 const showFormat = computed(() => {
-  return formats.find(f => f.key === itag.value)
-    || formats.find(f => f.key === '18')
+  return AUTO_DOWNLOAD_FORMATS.find(f => f.key === itag.value)
+    || AUTO_DOWNLOAD_FORMATS.find(f => f.key === '18')
 })
 
 

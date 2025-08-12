@@ -3,7 +3,7 @@ from utils.user import AuthService
 from utils.auth import get_current_user,make_room_id
 from socketio import AsyncNamespace
 from utils.logger import setup_logger
-
+from common.index import Search_suggestions_spotify
 logger = setup_logger("socket")
 
 
@@ -76,6 +76,30 @@ class UsersNamespace(socketio.AsyncNamespace, AuthService):
 
         except Exception as e:
             logger.exception(f"[ChefSearch] Error: {e}")
+
+    async def on_get_search_suggestions(self, sid, data):
+        try:
+            # logger.info("Search suggestions handler triggered,%s", data)
+
+            if not isinstance(data, dict):
+                await self.emit("message", {'message': f'Invalid data format: {data}', 'type': 'error'}, room=sid)
+                return
+
+            if 'query' not in data:
+                return  
+            query = data.get('query', '').strip().lower()
+
+            suggestions = await Search_suggestions_spotify(query)
+
+            await self.emit("response_search_suggestions", {
+                'search_suggestions': suggestions
+            }, room=sid)
+            
+        except Exception as e:
+            logger.exception(f"Error in on_get_search_suggestions: {e}")
+           
+
+
 
 
 class NotificationsNamespace(socketio.AsyncNamespace, AuthService):

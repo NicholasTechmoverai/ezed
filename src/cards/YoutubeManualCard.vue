@@ -4,7 +4,7 @@
             <n-alert type="info" :show-icon="true" class="w-full max-w-xl">
                 <span class="font-bold">Manual Mode:</span>
                 Load formats and select the ones that suit you.
-                <n-button size="tiny" quaternary @click="active_learn_drawer = true">Learn</n-button>
+                <n-button size="tiny"  @click="active_learn_drawer = true">Learn</n-button>
             </n-alert>
 
             <n-drawer v-model:show="active_learn_drawer" :width="500" placement="bottom" mask-closable>
@@ -15,12 +15,10 @@
 
             <div class="flex flex-col sm:flex-row gap-4 sm:justify-start items-start w-full max-w-5xl">
 
-                <!-- Left Panel: URL Input -->
                 <n-card title="Get Video Formats" class="w-full max-w-xl mt-4" :bordered="false">
                     <n-spin :show="isLoading" :description="loadingDescription">
                         <n-space vertical :size="20">
 
-                            <!-- Input -->
                             <n-input v-model:value="currentUrl" placeholder="Paste video URL..." clearable size="large"
                                 @keydown.enter="getFormats" class="input-focus">
                                 <template #prefix>
@@ -28,7 +26,6 @@
                                 </template>
                             </n-input>
 
-                            <!-- Button -->
                             <n-button type="primary" :loading="isLoading" :disabled="!isValidUrl || isLoading"
                                 @click="getFormats" size="large" block>
                                 {{ isLoading ? 'Loading formats...' : 'Load formats' }}
@@ -38,7 +35,6 @@
                     </n-spin>
                 </n-card>
 
-                <!-- Right Panel: Loaded Formats -->
                 <Transition name="scale-fade">
                     <n-card v-if="Object.keys(AllVideoInfo).length" title="Loaded URL Formats"
                         class="w-full min-w-[300px] sm:min-w-[350px] max-w-xl mt-6 sm:mt-4 cursor-pointer">
@@ -91,8 +87,8 @@
                                         <n-text depth="4">{{ prettyMs(videoInfo?.duration) || 'N/A' }}</n-text>
                                     </n-space>
                                 </div>
-                                <n-image v-if="videoInfo.thumbnail" :src="videoInfo.thumbnail" height="120" fit="cover"
-                                    class="mb-4 rounded w-auto" />
+                                <n-image v-if="videoInfo.thumbnail" :src="videoInfo.thumbnail"  fit="contain"
+                                    class="mb-4 rounded w-auto max-h-[150px] shrink-0" />
                             </div>
 
                             <n-scrollbar style="max-height: 360px;">
@@ -233,7 +229,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { LinkOutline, ArrowBackCircleOutline, CloseOutline } from '@vicons/ionicons5'
 import { useMessage, useDialog } from 'naive-ui'
 import { useDownloadStore } from '../store/downloadStore'
-import { normalizeYouTubeUrl, convertResolution, getItagWithAudio } from '../utils/others'
+import { normalizeYouTubeUrl, convertResolution, getItagWithAudio, getYouTubeThumbnail } from '../utils/others'
 import { generateUUID, useIsMobile } from '../reusables'
 import { useStateStore } from '../store/stateStore'
 import { saveFile } from '../db/download'
@@ -370,7 +366,7 @@ async function getFormats() {
             title: '',
             artist: '',
             views: '',
-            thumbnail: '',
+            thumbnail: getYouTubeThumbnail(url.value),
             duration: 0
         }
 
