@@ -287,7 +287,7 @@ export const useDownloadStore = defineStore('downloadStore', {
 
         const blob = new Blob(chunks);
         if (this.pendingMerges[id]) {
-          this.pendingMerges[id][downloadType] = { blob, status: STATUS_CONFI.completed.key };
+          this.pendingMerges[id][downloadType] = { blob, status: STATUS_CONFIG.completed.key };
           await this.checkAndMergeDownloads(id);
         } else {
           await this.finalizeDownload(id, blob, downloadedSize, this.onGoingDownloads[id].filename, this.onGoingDownloads[id].extension, isAudio);
