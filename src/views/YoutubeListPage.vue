@@ -290,10 +290,7 @@ const columns = [
     key: 'format',
     width: 100,
     filterOptions: [
-     AUTO_DOWNLOAD_FORMATS.map(format => ({
-        label: format,
-        value: format
-      }))
+     AUTO_DOWNLOAD_FORMATS
     ],
     filter: (value, row) => row.format?.includes(value)
   },
