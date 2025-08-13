@@ -145,15 +145,17 @@
                 <template v-if="!showDownloadProgress">
                   <n-space vertical>
 
-                    <n-button type="primary" size="large" @click="startDownload" class="shadow-md"
-                      :disabled="downloadStatus === 'completed'">
+                    <n-button v-if="downloadStatus === 'completed'" type="default" size="large" class="shadow-md"
+                      disabled>
                       <template #icon>
                         <n-icon>
                           <DownloadOutline v-if="downloadStatus !== 'completed'" />
                           <CheckmarkOutline v-else />
                         </n-icon>
                       </template>
-                      {{ downloadStatus === 'completed' ? 'Download Complete' : 'Download File' }}
+                      <n-gradient-text type="success">
+                        Download Complete
+                      </n-gradient-text>
                     </n-button>
                     <n-space>
                       <n-button type="tertiary" size="large" @click="shareDownload"

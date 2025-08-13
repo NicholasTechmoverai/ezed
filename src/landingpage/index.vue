@@ -245,21 +245,76 @@ const HandlePwaInstall = () => {
 </script>
 
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
-@import url('https://cdn.jsdelivr.net/npm/@fontsource/geist-sans@latest/index.css');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* Friendly but professional heading font */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
+/* Elegant serif for premium or luxury feel */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;700&display=swap');
+
+/* Decorative cursive for call-to-action or brand logo */
+@import url('https://fonts.googleapis.com/css2?family=Pacifico&display=swap');
+
+/* Funky script for creative headings */
 @import url('https://fonts.googleapis.com/css2?family=Lobster&display=swap');
 
-.lobster-font {
-    font-family: 'Lobster', cursive;
-}
+/* Sofia – soft, geometric sans-serif */
+@import url('https://fonts.googleapis.com/css2?family=Sofia&display=swap');
 
-.font-geist {
-    font-family: 'Geist', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-}
+/* Playwrite Australia NSW – decorative handwritten serif */
+@import url('https://fonts.googleapis.com/css2?family=Playwrite+Australia+NSW:wght@400;500;600;700&display=swap');
 
+/* Optional: modern geometric sans */
+@import url('https://cdn.jsdelivr.net/npm/@fontsource/geist-sans@latest/index.css');
+
+
+/* Body text – clean & legible */
 .font-inter {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
+
+/* Headings – rounded & friendly */
+.font-poppins {
+  font-family: 'Poppins', 'Inter', sans-serif;
+}
+
+/* Luxury headings / hero quotes */
+.font-playfair {
+  font-family: 'Playfair Display', serif;
+}
+
+/* Decorative cursive – brand logo or main CTA */
+.font-pacifico {
+  font-family: 'Pacifico', cursive;
+}
+
+/* Funky script – creative highlight text */
+.font-lobster {
+  font-family: 'Lobster', cursive;
+}
+
+/* Minimal modern sans */
+.font-geist {
+  font-family: 'Geist Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Soft, geometric sans-serif */
+.font-sofia {
+  font-family: 'Sofia', cursive;
+}
+
+/* Handwritten serif – elegant signature style */
+.font-playwrite-aus-nsw {
+  font-family: 'Playwrite Australia NSW', serif;
+}
+
+.lobster-font {
+  font-family: 'Playwrite Australia NSW', serif;
+}
+
+
+
 
 @keyframes fade-in {
     from {

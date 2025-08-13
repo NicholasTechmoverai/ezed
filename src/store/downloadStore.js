@@ -166,6 +166,11 @@ export const useDownloadStore = defineStore('downloadStore', {
         thumbnail: abb_r === 'yt' ? getYouTubeThumbnail(url) : undefined
       })
 
+      this.get_download_meta(id, url, itag)
+        .catch(err => {
+          console.error('get_download_meta failed:', err);
+        });
+
       this.stateStore.addTask({ id, name: `${filename}`, url: `/h/${abb_r}/${id}`, time: Date.now() });
 
       // Handle combined formats (video+audio)

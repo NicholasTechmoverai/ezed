@@ -25,6 +25,24 @@
               </template>
               Clear
             </n-button>
+            <!-- New format selection button -->
+            <n-popselect
+              v-model:value="batchFormat"
+              :options="formatOptions"
+              @update:value="applyBatchFormat"
+              trigger="click"
+              size="small"
+              :disabled="!checkedRowKeys.length"
+            >
+              <n-button secondary :disabled="!checkedRowKeys.length">
+                <template #icon>
+                  <n-icon>
+                    <FormatIcon />
+                  </n-icon>
+                </template>
+                Set Format
+              </n-button>
+            </n-popselect>
             <n-button type="success" @click="handleDownloadSelected" :disabled="!checkedRowKeys.length">
               <template #icon>
                 <n-icon>
@@ -80,7 +98,9 @@ import {
   NImage,
   NButtonGroup,
   NPopconfirm,
-  NTag
+  NTag,
+  NSelect,
+  NPopselect
 } from 'naive-ui'
 import {
   Download as DownloadIcon,
@@ -89,7 +109,8 @@ import {
   Trash as DeleteIcon,
   Albums as SelectAllIcon,
   Close as ClearAllIcon,
-  InformationCircle as InfoIcon
+  InformationCircle as InfoIcon,
+  Options as FormatIcon
 } from '@vicons/ionicons5'
 import { deleteFile, getAllFiles } from '../db/download'
 import defaultThumbnail from "../assets/defaultThumbnail.png"
@@ -102,6 +123,7 @@ import { useDownloadStore } from '../store/downloadStore'
 import { useStateStore } from '../store/stateStore'
 import { generateUUID } from '../reusables'
 import { AUTO_DOWNLOAD_FORMATS } from '../utils/others'
+
 const downloadStore = useDownloadStore()
 const route = useRoute()
 const abb_r = ref("yt")
@@ -110,6 +132,14 @@ const listName = ref('untitled')
 const isLoading = ref(false)
 const currentListId = computed(() => route.params.list_id || null)
 const stateStore = useStateStore()
+const message = useMessage()
+
+// New reactive states for format management
+const batchFormat = ref(null)
+const formatOptions = computed(() => 
+  AUTO_DOWNLOAD_FORMATS.map(f => ({ label: f.label, value: f.value }))
+)
+
 const getSongs = async () => {
   try {
     if (!downloadStore.listSongs[currentListId.value]) {
@@ -127,19 +157,17 @@ const getSongs = async () => {
 }
 
 watch(
-  () => downloadStore.listSongs[currentListId.value], // Getter
+  () => downloadStore.listSongs[currentListId.value],
   (newVal) => {
     listSongs.value = newVal?.songs || [];
     listName.value = newVal?.name || "";
     isLoading.value = newVal?.isLoading || false
   },
-  { deep: true, immediate: true } // deep so changes inside object trigger, immediate so it runs once on mount
+  { deep: true, immediate: true }
 );
-
 
 // Reactive state
 const checkedRowKeys = ref([])
-const message = useMessage()
 
 // Computed properties
 const selectedItems = computed(() =>
@@ -159,6 +187,25 @@ const pagination = reactive({
   }
 })
 
+// Format management functions
+const applyBatchFormat = () => {
+  if (!batchFormat.value) return;
+  
+  checkedRowKeys.value.forEach(id => {
+    const row = listSongs.value.find(r => r.id === id);
+    if (row) {
+      downloadStore.updateSongFormat(currentListId.value, row.id, batchFormat.value);
+    }
+  });
+  
+  message.success(`Format updated for ${checkedRowKeys.value.length} items`);
+  batchFormat.value = null;
+};
+
+const updateSingleFormat = (row, newFormat) => {
+  downloadStore.updateSongFormat(currentListId.value, row.id, newFormat);
+};
+
 const createActionsColumn = () => {
   return {
     title: 'Actions',
@@ -175,7 +222,6 @@ const createActionsColumn = () => {
             quaternary: true,
             onClick: (e) => {
               e.stopPropagation()
-              //   window.open(`/h/meta/${row.id}`, '_blank')
               router.push(`/h/meta/${row.id}`)
             }
           },
@@ -248,6 +294,27 @@ const createStatusColumn = () => {
   }
 }
 
+// Enhanced format column with editable dropdown
+const createFormatColumn = () => {
+  return {
+    title: 'Format',
+    key: 'format',
+    width: 180,
+    filterOptions: formatOptions.value,
+    filter: (value, row) => row.format === value,
+    render(row) {
+      return h(NSelect, {
+        value: row.format,
+        options: formatOptions.value,
+        onUpdateValue: (value) => updateSingleFormat(row, value),
+        size: 'small',
+        clearable: true,
+        placeholder: "Select format"
+      })
+    }
+  }
+}
+
 const columns = [
   {
     type: 'selection',
@@ -284,17 +351,7 @@ const columns = [
     width: 200,
     render: (row) => row.url
   },
-
-   {
-    title: 'Format',
-    key: 'format',
-    width: 100,
-    filterOptions: [
-     AUTO_DOWNLOAD_FORMATS
-    ],
-    filter: (value, row) => row.format?.includes(value)
-  },
-  
+  createFormatColumn(), // Use the new editable format column
   {
     title: 'Time',
     key: 'time',
@@ -307,7 +364,9 @@ const columns = [
     key: 'size',
     width: 100,
     sorter: (a, b) => parseFloat(a.filesize || 0) - parseFloat(b.filesize || 0),
-    render: (row) => row.filesize ? (row.status != 'completed' ? formatFileSize(row.downloadedSize) / formatFileSize(row.filesize) : formatFileSize(row.filesize)) : '--'
+    render: (row) => row.filesize ? (row.status != 'completed' ? 
+      `${Math.round((row.downloadedSize / row.filesize) * 100)}%` : 
+      formatFileSize(row.filesize)) : '--'
   },
   createStatusColumn(),
   createActionsColumn()
@@ -316,16 +375,13 @@ const columns = [
 const rowKey = (row) => row.id
 
 // Methods
-
-
 const handleDownload = async (row) => {
   message.loading(`downloading ${row.title}`)
   const new_id = generateUUID()
-  const itag = "18"
-  const r = await downloadStore.download_file('inst/Nick/download', new_id, row.url,itag)
+  const itag = row.format || "18"  // Use row-specific format if available
+  const r = await downloadStore.download_file('inst/Nick/download', new_id, row.url, itag)
   if (r) message.info(r)
   else message.success("done")
-
 }
 
 const handleDownloadSelected = async () => {
@@ -336,6 +392,7 @@ const handleDownloadSelected = async () => {
   }
   clearSelection()
 }
+
 const handleSongsRefetch = async (url = null) => {
   const username = "Nick";
   let url_ = url;
@@ -347,28 +404,23 @@ const handleSongsRefetch = async (url = null) => {
         return message.error("List URL not found!");
       }
       url_ = task.listUrl;
-
     } catch (err) {
-    console.error("Error resolving list URL:", err);
-    return message.error("Unable to fetch list URL.");
+      console.error("Error resolving list URL:", err);
+      return message.error("Unable to fetch list URL.");
+    }
   }
-}
 
-await downloadStore.getListSongs(
-  `${abb_r.value}/${username}/list`,
-  url_,
-  currentListId.value
-);
+  await downloadStore.getListSongs(
+    `${abb_r.value}/${username}/list`,
+    url_,
+    currentListId.value
+  );
 };
-
 
 const handleDelete = async (row) => {
   if (!row?.url) return;
-
   message?.info(`Deleted download: ${row.title || row.url}`);
-
   await deleteFile(row.id);
-
   listSongs.value = listSongs.value.filter(s => s.url !== row.url);
 };
 
@@ -386,12 +438,8 @@ const handleDeleteSelected = async () => {
   }
 
   message?.info(`Deleted ${checkedRowKeys.value.length} download(s)`);
-
-  // Refresh downloads from backend to stay in sync
-  await getDownloads();
   clearSelection();
 };
-
 
 const selectAllRows = () => {
   checkedRowKeys.value = listSongs.value.map(item => item.id || item.url)
@@ -437,6 +485,8 @@ onMounted(() => {
   justify-content: flex-start;
   padding-bottom: 16px;
   overflow-x: auto;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .download-button {
@@ -465,5 +515,10 @@ onMounted(() => {
   display: flex;
   gap: 8px;
   justify-content: center;
+}
+
+/* Ensure select dropdowns are visible */
+.n-select {
+  min-width: 150px;
 }
 </style>

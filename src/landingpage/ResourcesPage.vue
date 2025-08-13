@@ -38,6 +38,7 @@ import Downloads from "../assets/LandscapeDownloadShot.png"
 import inputCardShot from "../assets/inputCardShot.png"
 import QualitySelectionShot from "../assets/qualitySelectionShot.png"
 import ShotDisplayer from './ShotDisplayer.vue';
+import YoutubeListShot  from '../assets/ytListShot.png'
 import { Sitemap } from "@vicons/fa";
 import { SITEMETA } from "../utils";
 import { useI18n } from 'vue-i18n'
@@ -53,7 +54,7 @@ const downloadFeatures = computed(() => {
     { id: "resume-support", label: labels[2], icon: "⏯️", image: DownloadProgressShot, component: ShotDisplayer },
     { id: "quality-options", label: labels[3], icon: "✨", image: QualitySelectionShot, component: ShotDisplayer },
     { id: "playlist-support", label: labels[4], icon: "🎵", image: Downloads, component: ShotDisplayer },
-    { id: "manga-downloads", label: labels[5], icon: "🎵", image: Downloads, component: ShotDisplayer }
+    { id: "manga-downloads", label: labels[5], icon: "🎵", image: YoutubeListShot, component: ShotDisplayer }
   ]
 })
 

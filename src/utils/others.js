@@ -36,7 +36,6 @@ export function convertResolution(res) {
     // Extract width and height from the resolution string (e.g., "1920x1080")
     const [width, height] = res.split('x').map(Number);
 
-    if (width) console.log('')
 
     if (isNaN(height)) return res;
 
