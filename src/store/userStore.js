@@ -3,6 +3,7 @@ import { ref, watch } from 'vue'
 import { i18n } from '../main'
 import { notificationsSocket, usersSocket } from '../web_socket'
 import { refreshToken } from '../api'
+import { checkForUpdate } from '../autoupdate'
 
 export const useUserStore = defineStore('userUseStore', () => {
   const theme = ref('light')
@@ -40,6 +41,7 @@ export const useUserStore = defineStore('userUseStore', () => {
     const savedLang = localStorage.getItem('lang')
     if (savedLang) setLang(savedLang)
 
+    checkForUpdate()
 
     try {
       const response = await refreshToken({ id: '20fddc16-2867-4441-bb54-c5ce7c8f12eb' })

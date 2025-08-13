@@ -21,7 +21,7 @@
 
         <header class="flex flex-row  relative p-3 ">
             <n-badge :value="t('l_badge')"
-                class="cursor-pointer fixed z-[9999] origin-top-left transition-all duration-600 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
+                class="cursor-pointer fixed z-[9999] origin-top-left transition-all duration-600 ease-[cubic-bezier(0.34,1.56,0.64,1)] whitespace-nowrap"
                 :class="{
                     'left-4 top-4 scale-90 opacity-90': !scrolled,
                     'left-[80%] lg:left-1/2 top-4 -translate-x-1/2 scale-90 lg:scale-100 opacity-100': scrolled
