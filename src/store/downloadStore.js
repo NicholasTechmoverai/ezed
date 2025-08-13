@@ -92,7 +92,7 @@ export const useDownloadStore = defineStore('downloadStore', {
       const fields = [
         'filename', 'progress', 'status', 'eta',
         'downloadSpeedMbps', 'thumbnail', 'filesize',
-        'downloadedSize', 'url', 'merge_progress'
+        'downloadedSize', 'url', 'merge_progress', 'extension'
       ];
 
       fields.forEach(key => {
@@ -145,10 +145,10 @@ export const useDownloadStore = defineStore('downloadStore', {
      * @param {number} startByte - Resume position
      * @param {string} format - Output format
      */
-    async download_file(endpoint, id, url, itag, ext, startByte = 0, format) {
+    async download_file(endpoint, id, url, itag, ext = null, startByte = 0, format) {
       if (!url) return console.error("Missing URL");
       let filename = suggestFilename(url);
-      let extension = ext || (audioItags.includes(itag) ? "mp4a" : "mp4");
+      let extension = ext || (audioItags.includes(itag) ? "m4a" : "mp4");
       const abb_r = await getSiteKeyFromURL(url);
 
       this.update_download_progress({
@@ -180,18 +180,18 @@ export const useDownloadStore = defineStore('downloadStore', {
           video: null,
           audio: null,
           filename: null,
-          extension: ext || 'mp4'
+          extension: extension || 'mp4'
         };
 
         // await Promise.all([
-        this.handle_download(endpoint, id, url, videoTag, ext, startByte, format, false),
-          this.handle_download(endpoint, id, url, audioTag, ext, startByte, format, true)
+        this.handle_download(endpoint, id, url, videoTag, extension, startByte, format, false),
+          this.handle_download(endpoint, id, url, audioTag, extension, startByte, format, true)
         // ]);
         return;
       }
 
       // Single format download
-      await this.handle_download(endpoint, id, url, itag, ext, startByte, format, false);
+      await this.handle_download(endpoint, id, url, itag, extension, startByte, format, false);
     },
 
     /**
@@ -282,7 +282,8 @@ export const useDownloadStore = defineStore('downloadStore', {
               filesize: contentLength,
               downloadedSize,
               is_audio: isAudio,
-              timestamp: Date.now()
+              timestamp: Date.now(),
+              extension: ext,
             });
 
             lastUpdateTime = now;
@@ -448,7 +449,7 @@ export const useDownloadStore = defineStore('downloadStore', {
         const startTime = performance.now();
 
         const { data } = await axios.post(ENDPOINTS.FETCH_LIST_SONGS, { url, itag });
-        this.stateStore.addTask({ id: id, name: data.title || data.filename  });
+        this.stateStore.addTask({ id: id, name: data.title || data.filename });
         await this.update_download_progress({
           id,
           downloadName: data.filename,

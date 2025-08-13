@@ -1,35 +1,31 @@
-
 <template>
   <n-layout has-sider class="min-h-screen">
-    <SideMenu 
-      v-if="!isMobile" 
-      :collapsed="collapsed" 
-      @update:collapsed="collapsed = $event" 
-    />
+    <SideMenu v-if="!isMobile" :collapsed="collapsed" @update:collapsed="collapsed = $event" />
 
-    <n-layout-content 
-      :native-scrollbar="false" 
-      :style="{ marginLeft: contentMarginLeft }" 
-      class="flex flex-col min-h-screen"
-    >
-      <n-layout-header
-        bordered
-        class="flex flex-col p-3 sticky top-0  z-30"
-      >
+    <n-layout-content :native-scrollbar="false" :style="{ marginLeft: contentMarginLeft }"
+      class="flex flex-col min-h-screen">
+      <n-layout-header bordered class="flex flex-col p-3 sticky top-0  z-30">
         <HeaderPage />
         <SecondLayerHeader />
       </n-layout-header>
 
       <n-layout-content class="flex-1 overflow-auto">
-        <Transition
-          enter-active-class="transition-transform transition-opacity duration-300 ease-out"
-          enter-from-class="translate-x-4 opacity-0"
-          enter-to-class="translate-x-0 opacity-100"
+        <Transition enter-active-class="transition-transform transition-opacity duration-300 ease-out"
+          enter-from-class="translate-x-4 opacity-0" enter-to-class="translate-x-0 opacity-100"
           leave-active-class="transition-transform transition-opacity duration-200 ease-in"
-          leave-from-class="translate-x-0 opacity-100"
-          leave-to-class="translate-x-4 opacity-0"
-        >
-          <router-view />
+          leave-from-class="translate-x-0 opacity-100" leave-to-class="translate-x-4 opacity-0">
+            <n-config-provider :theme-overrides="{
+              Scrollbar: {
+                width: '8px',
+                railInsetHorizontal: '4px 4px 4px auto',
+                borderRadius: 0,
+              },
+            }">
+              <n-scrollbar style="max-height: 80vh">
+                <router-view />
+
+              </n-scrollbar>
+            </n-config-provider>
         </Transition>
         <LoadingBarTrigger />
       </n-layout-content>
@@ -50,14 +46,14 @@ import { watch } from 'vue';
 const stateStore = useStateStore()
 const loadingBar = useLoadingBar()
 const message = useMessage()
-const collapsed = ref(false);  
+const collapsed = ref(false);
 import { ref, computed } from 'vue';
 import { usersSocket } from '../web_socket';
 import { useNotificationSocket } from '../web_socket/useNotificationSocket';
 
 const contentMarginLeft = computed(() => {
-  if (isMobile.value) return '0px'; 
-  return collapsed.value ? '64px' : '240px'; 
+  if (isMobile.value) return '0px';
+  return collapsed.value ? '64px' : '240px';
 });
 const loadShit = () => {
   stateStore.setLoadingBar(1)

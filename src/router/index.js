@@ -9,7 +9,7 @@ import DownloadsPage from '../pages/DownloadsPage.vue'
 import YoutubeLandPage from '../cards/YoutubeLandPage.vue'
 import YoutubeAutoCard from '../cards/YoutubeAutoCard.vue'
 import YoutubeManualCard from '../cards/YoutubeManualCard.vue'
-
+import UserProfilePage from "../profile/index.vue"
 // Lazy-loaded route components (better for performance)
 const MainContentPage = () => import('../pages/MainContentPage.vue')
 const DownloadCardMount = () => import('../views/DownloadCardMount.vue')
@@ -31,6 +31,7 @@ const routes = [
     name: 'Landing',
     component: LandingPage,
   },
+
   {
     path: '/share',
     name: 'HandleShare',
@@ -81,7 +82,7 @@ const routes = [
             path: 'custom-config',
             name: 'CustomConfig',
             component: YoutubeManualCard,
-          }, 
+          },
           {
             path: ':id',
             name: 'YoutubeDetail',
@@ -149,9 +150,14 @@ const routes = [
         name: 'DownloadPage',
         component: DownloadsPage,
       },
+      {
+        path: 'profile',
+        name: 'UserProfile',
+        component: UserProfilePage,
+        props: true
+      }
     ],
   },
-
   // Fallback (optional)
   {
     path: '/:pathMatch(.*)*',
