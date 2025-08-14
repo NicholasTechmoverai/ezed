@@ -1,6 +1,4 @@
-import { download } from "naive-ui/es/_utils";
 
-// locales/en.js
 export default {
     navButtons: ["Home", "Downloads", "About"],
     l_badge: "Continue on website",
