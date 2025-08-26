@@ -1,0 +1,62 @@
+import { openDB } from 'idb'
+
+const DB_NAME = 'user-db'
+const DB_VERSION = 1
+const STORE_NAME = 'userInfo'
+
+/**
+ * Initialize and return the IndexedDB instance
+ * @returns {Promise<IDBPDatabase>}
+ */
+export async function getDB() {
+  return openDB(DB_NAME, DB_VERSION, {
+    upgrade(db) {
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME, { keyPath: 'id' })
+      }
+    },
+  })
+}
+
+/**
+ * Add or update a user in IndexedDB
+ * @param {Object} user - User object with at least an `id` property
+ * @returns {Promise<string|void>} - Returns an error message if validation fails
+ */
+export async function addUser_db(user) {
+  if (!user || !user.id) {
+    const msg = 'addUser_db: User must be an object with an "id" property'
+    console.error(msg)
+    return msg
+  }
+
+  try {
+    const db = await getDB()
+    const existing = (await db.get(STORE_NAME, user.id)) || {}
+
+    const updatedUser = {
+      ...existing,
+      ...user,
+      timestamp: Date.now(),
+    }
+
+    await db.put(STORE_NAME, updatedUser)
+  } catch (err) {
+    console.error('addUser failed:', err)
+  }
+}
+
+/**
+ * Retrieve a user by ID from IndexedDB
+ * @param {string|number} id - User ID
+ * @returns {Promise<Object|undefined>} - Returns the user object or undefined if not found
+ */
+export async function getUser_db(id) {
+  try {
+    const db = await getDB()
+    return await db.get(STORE_NAME, id)
+  } catch (err) {
+    console.error('getUser failed:', err)
+    return undefined
+  }
+}

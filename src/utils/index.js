@@ -1,5 +1,5 @@
 // export const BASE_URL = "http://127.0.0.1:8000";
-export const BASE_URL = "https://nn-rise-homepage-boost.trycloudflare.com";
+export const BASE_URL = "https://ons-apartments-decision-nevada.trycloudflare.com";
 
 export const B_URL = `${BASE_URL}/api`;
 

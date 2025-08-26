@@ -24,6 +24,7 @@ const InstagramPage = () => import('../composables/InstagramPage.vue')
 const TiktokPage = () => import('../composables/TiktokPage.vue')
 const XPage = () => import('../composables/XPage.vue')
 const E_404Page = () => import('../cards/E_404Page.vue')
+const SettingsPage = () => import('../settings/index.vue')
 
 const routes = [
   {
@@ -155,10 +156,14 @@ const routes = [
         name: 'UserProfile',
         component: UserProfilePage,
         props: true
-      }
+      },
+      {
+        path: 'settings',
+        name: 'Settingd',
+        component: SettingsPage,
+      },
     ],
   },
-  // Fallback (optional)
   {
     path: '/:pathMatch(.*)*',
     name: '404Page',

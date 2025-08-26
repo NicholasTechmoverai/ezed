@@ -1,13 +1,11 @@
 <template>
   <div class="max-w-900px mx-auto p-5">
-    <!-- User Profile Section -->
     <n-card 
       title="Profile Information" 
       hoverable 
-      class="rounded-3xl shadow-md mb-6 dark:bg-dark-800"
+      class="rounded-xl shadow-md mb-6 "
     >
       <div class="flex flex-col md:flex-row gap-6">
-        <!-- Avatar Upload Section -->
         <div class="flex flex-col items-center gap-3">
           <n-upload
             action="/api/upload"
@@ -24,32 +22,31 @@
             <n-avatar
               round
               :size="128"
-              :src="userStore.user?.avatar || previewImageUrl || defaultAvatar"
+              :src="user?.avatar || previewImageUrl || defaultAvatar"
               class="w-full h-full object-cover hover:scale-105 transition-transform"
             />
           </n-upload>
       
         </div>
 
-        <!-- User Information -->
         <div class="flex-1 min-w-0">
           <n-gradient-text 
             type="success" 
             :size="24" 
             class="text-2xl font-bold mb-4 block"
           >
-            {{ userStore.user?.username || 'Guest' }}
+            {{ user?.username || 'Guest' }}
           </n-gradient-text>
           
           <div class="space-y-4">
             <div class="flex items-center gap-2">
               <n-icon :component="EmailOutline" size="20" class="text-blue-500" />
               <n-text strong class="text-gray-800 dark:text-gray-200">
-                {{ userStore.user?.email || 'No email provided' }}
+                {{ user?.email || 'No email provided' }}
               </n-text>
             </div>
             
-            <div class="flex items-center gap-2">
+            <!-- <div class="flex items-center gap-2">
               <n-icon :component="InformationCircleOutline" size="20" class="text-blue-500" />
               <n-text 
                 v-if="userStore.user?.bio" 
@@ -58,15 +55,13 @@
               >
                 {{ userStore.user.bio }}
               </n-text>
-              <n-text v-else depth="3" class="text-gray-500 dark:text-gray-400">
-                No bio yet
-              </n-text>
-            </div>
+            
+            </div> -->
             
             <div class="flex items-center gap-2">
               <n-icon :component="CalendarOutline" size="20" class="text-blue-500" />
               <n-text depth="3" class="text-gray-500 dark:text-gray-400">
-                Member since {{ formatDate(userStore.user?.createdAt) || 'unknown' }}
+                Member since {{ formatDate(user.createdAt) || 'unknown' }}
               </n-text>
             </div>
           </div>
@@ -74,7 +69,6 @@
       </div>
     </n-card>
 
-    <!-- Image Preview Modal -->
     <n-modal 
       v-model:show="showModal" 
       preset="card"
@@ -105,7 +99,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useUserStore } from '../store/userStore'
 import { 
   BagRemoveSharp as EmailOutline,
@@ -113,6 +107,11 @@ import {
   CalendarOutline
 } from '@vicons/ionicons5'
 import defaultAvatar from '../assets/NoUser.png'
+import { getUser_db } from '../db/user,js'
+import axios from 'axios'
+import { ENDPOINTS } from '../api'
+
+const user = ref({})
 
 const userStore = useUserStore()
 const showModal = ref(false)
@@ -161,6 +160,20 @@ const formatDate = (dateString) => {
   const options = { year: 'numeric', month: 'long', day: 'numeric' }
   return new Date(dateString).toLocaleDateString(undefined, options)
 }
+
+const get_profile = async () => {
+  user.value = await getUser_db()
+  try {
+    const response = await axios.get(ENDPOINTS.USER_PROFILE(user.value.id))
+    user.value = response.data
+  } catch (error) {
+    console.error('Error fetching user profile:', error)
+  }
+}
+
+onMounted(() => {
+  get_profile()
+})
 </script>
 
 <style>
