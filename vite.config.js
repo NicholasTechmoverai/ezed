@@ -6,6 +6,7 @@ import Unocss from 'unocss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+
   plugins: [
     vue(),
     tailwindcss(),
@@ -16,7 +17,7 @@ export default defineConfig({
       manifest: {
         name: 'e-zed',
         short_name: 'e-z',
-        description:"Download from TikTok, Instagram, YouTube, Facebook, X and more — share a link and get your music or video instantly.",
+        description: "Download from TikTok, Instagram, YouTube, Facebook, X and more — share a link and get your music or video instantly.",
         start_url: '/h',
         display: 'standalone',
         background_color: '#ffffff',
@@ -35,7 +36,7 @@ export default defineConfig({
         ],
         share_target: {
           action: '/share',
-          method: 'GET',
+          method: 'POST',
           enctype: 'multipart/form-data',
           params: {
             title: 'title',
@@ -44,24 +45,39 @@ export default defineConfig({
             files: [
               {
                 name: 'files',
-                accept: [
-                  'text/*',
-                  'image/*',
-                  'video/*',
-                  'application/*'
-                ]
+                accept: ['text/*', 'image/*', 'video/*', 'application/*']
               }
             ]
           }
         }
+
       }
     })
 
   ],
+  server: {
+    allowedHosts: ["ezed.tera-in.top", "ezed.tera-in.top", "e-zed.tera-in.top"],
+  },
+  base: '/',
+  build: {
+    outDir: 'dist',         // ✅ matches VUE_DIST_DIR in backend
+    assetsDir: 'static',    // ✅ matches app.mount("/static", ...) 
+    emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        entryFileNames: `static/[name]-[hash].js`,
+        chunkFileNames: `static/[name]-[hash].js`,
+        assetFileNames: `static/[name]-[hash][extname]`,
+      },
+    },
+  },
+
+
   resolve: {
     alias: {
       '~': path.resolve(__dirname, '.'),       // Project root
       '@': path.resolve(__dirname, 'src'),     // Source folder
     },
   },
+
 })

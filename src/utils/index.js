@@ -1,5 +1,17 @@
-// export const BASE_URL = "http://127.0.0.1:8000";
-export const BASE_URL = "https://np-officer-peninsula-particles.trycloudflare.com";
+export let BASE_URL = "https://ezed.tera-in.top";
+
+function initUrl() {
+  BASE_URL = window.origin;
+
+  const hosts = ["netlify", "vercel", "github"];
+
+  if (hosts.some(h => window.location.hostname.includes(h))) {
+    BASE_URL = "https://ezed.tera-in.top";
+  }
+}
+
+initUrl();
+
 
 export const B_URL = `${BASE_URL}/api`;
 

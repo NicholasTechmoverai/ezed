@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
-from starlette.responses import FileResponse
+from starlette.responses import FileResponse, HTMLResponse
 from fastapi import FastAPI, Request
 from slowapi.errors import RateLimitExceeded
 from fastapi.responses import JSONResponse
@@ -20,7 +20,7 @@ import asyncio
 if platform.system() == "Windows":
     # Use the Selector event loop on Windows so subprocess support works
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-    
+
 from config import init_db  # Your DB init logic
 from routes.auth import auth_router
 from routes.instagram import instagram_router
@@ -37,8 +37,11 @@ from config import Config, WEB_SERVER, BASE_SERVER
 
 ALLOWED_ORIGINS = [
     "http://localhost:5173",
-    "http://localhost:8080",
+    "http://localhost:8000",
     "https://e-zed.netlify.app",
+    "https://e-zed.tera-in.top",
+    "https://ezed.tera-in.top",
+    "http://127.0.0.1:8000",
     f"{WEB_SERVER}",
 ]
 
@@ -82,6 +85,7 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
         status_code=429, content={"detail": "Rate limit exceeded. Please wait."}
     )
 
+
 app.include_router(instagram_router, prefix="/api/inst")
 app.include_router(facebook_router, prefix="/api/fb")
 app.include_router(tiktok_router, prefix="/api/tk")
@@ -92,24 +96,33 @@ app.include_router(auth_router, prefix="/api/auth")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 VUE_DIST_DIR = os.path.abspath(os.path.join(BASE_DIR, "..", "dist"))
-BASE_DIRECTORY = "uploads"
-app.mount("/static", StaticFiles(directory=BASE_DIRECTORY), name="uploads")
-# app.mount("/static", StaticFiles(directory=VUE_DIST_DIR), name="static")
-# @app.get("/", include_in_schema=False)
-# async def serve_root():
-#     return FileResponse(os.path.join(VUE_DIST_DIR, "index.html"))
+
+# Serve uploaded files
+# app.mount("/static", StaticFiles(directory="uploads"), name="uploads")
 
 
-# @app.get("/{full_path:path}", include_in_schema=False)
-# async def serve_vue(full_path: str):
-#     # Let FastAPI serve actual static files (favicon, manifest, etc.)
-#     file_path = os.path.join(VUE_DIST_DIR, full_path)
-#     if os.path.exists(file_path) and os.path.isfile(file_path):
-#         return FileResponse(file_path)
+# Serve the frontend "root" files (index.html, sw.js, manifest, etc.)
+@app.get("/", include_in_schema=False)
+async def serve_root():
+    return FileResponse(os.path.join(VUE_DIST_DIR, "index.html"))
 
-#     # Fallback to index.html for SPA routing
-#     return FileResponse(os.path.join(VUE_DIST_DIR, "index.html"))
 
+@app.get("/{full_path:path}", include_in_schema=False)
+async def serve_vue(full_path: str):
+    file_path = os.path.join(VUE_DIST_DIR, full_path)
+
+    if os.path.exists(file_path) and os.path.isfile(file_path):
+        return FileResponse(file_path)
+
+    return FileResponse(os.path.join(VUE_DIST_DIR, "index.html"))
+
+
+# ✅ Serve built assets correctly
+app.mount(
+    "/static",
+    StaticFiles(directory=os.path.join(VUE_DIST_DIR, "static")),
+    name="static",
+)
 
 
 @app.on_event("startup")
@@ -126,4 +139,5 @@ async def shutdown():
 
 
 # uvicorn app:zed_app --reload
+# uvicorn app:zed_app --reload --host 0.0.0.0 --port 8007
 # cloudflared tunnel --url http://localhost:8000
