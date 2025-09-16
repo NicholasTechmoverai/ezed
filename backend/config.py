@@ -46,5 +46,7 @@ class Config:
     BASE_DIR = os.path.abspath(os.path.dirname(__file__))
     CHEF_PATH = os.path.join('uploads', 'chefs')
     USER_PATH = os.path.join('uploads', 'users')
+    SHARE_SAVE_PATH = os.path.join('uploads', 'shares')
+
 
     

@@ -93,21 +93,23 @@
                                             </template>
                                             Copy URL to clipboard
                                         </n-tooltip>
+                                        <n-dropdown :options="downloadoptions"
+                                            @select="(key) => handleDownload(result,key)">
+                                            <n-tooltip>
+                                                <template #trigger>
+                                                    <n-button secondary type="primary" size="small">
+                                                        <template #icon>
+                                                            <n-icon>
+                                                                <DownloadOutline />
+                                                            </n-icon>
+                                                        </template>
+                                                        Download
+                                                    </n-button>
+                                                </template>
+                                                Download this video
+                                            </n-tooltip>
+                                        </n-dropdown>
 
-                                        <n-tooltip>
-                                            <template #trigger>
-                                                <n-button secondary type="primary" size="small"
-                                                    @click="handleDownload(result)">
-                                                    <template #icon>
-                                                        <n-icon>
-                                                            <DownloadOutline />
-                                                        </n-icon>
-                                                    </template>
-                                                    Download
-                                                </n-button>
-                                            </template>
-                                            Download this video
-                                        </n-tooltip>
 
                                         <n-tooltip>
                                             <template #trigger>
@@ -193,7 +195,22 @@ const copyToClipboard = (text) => {
 const userStore = useUserStore()
 const downloadStore = useDownloadStore()
 
-const handleDownload = async (result) => {
+const downloadoptions = [
+    {
+        label: 'video',
+        key: '18',
+        icon: ""
+    },
+    {
+        label: 'audio',
+        key: '140',
+        icon: ""
+    },
+
+]
+
+
+const handleDownload = async (result, key) => {
     const id = generateUUID()
 
     setTimeout(() => {
@@ -205,7 +222,7 @@ const handleDownload = async (result) => {
         itag: '18',
         startTime: Date.now(),
     });
-    downloadStore.get_download_meta(id, result.url, '18')
+    downloadStore.get_download_meta(id, result.url, key)
     downloadStore.update_download_progress({
         id,
         downloadName: result.title,
@@ -216,7 +233,7 @@ const handleDownload = async (result) => {
         progress: 0,
         createdAt: Date.now(),
     })
-    await downloadStore.download_file(`yt/${userStore.user?.username}/download`, id, result.url, '18')
+    await downloadStore.download_file(`yt/${userStore.user?.username}/download`, id, result.url, key)
 }
 const showInfo = (format) => {
     try {

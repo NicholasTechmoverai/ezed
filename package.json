@@ -28,6 +28,7 @@
     "pretty-ms": "^9.2.0",
     "socket.io-client": "^4.8.1",
     "tailwindcss": "^4.1.11",
+    "three": "^0.179.1",
     "vue": "^3.5.17",
     "vue-flag-icon": "^2.1.0",
     "vue-i18n": "^11.1.11",

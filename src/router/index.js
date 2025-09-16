@@ -10,12 +10,14 @@ import YoutubeLandPage from '../cards/YoutubeLandPage.vue'
 import YoutubeAutoCard from '../cards/YoutubeAutoCard.vue'
 import YoutubeManualCard from '../cards/YoutubeManualCard.vue'
 import UserProfilePage from "../profile/index.vue"
+import AuthPage from '../pages/AuthPage.vue'
+import SharedId from '../share/sharedId.vue'
 // Lazy-loaded route components (better for performance)
 const MainContentPage = () => import('../pages/MainContentPage.vue')
 const DownloadCardMount = () => import('../views/DownloadCardMount.vue')
 const YoutubeListPage = () => import('../views/YoutubeListPage.vue')
 const FileMetaCard = () => import('../cards/FileMetaCard.vue')
-const HandleSharePage = () => import('../pages/HandleShare.vue')
+const HandleSharePage = () => import('../share/Shared.vue')
 
 // If these are really composables turned into single-file components, they can be lazy too:
 const YoutubePage = () => import('../composables/YoutubePage.vue')
@@ -25,6 +27,8 @@ const TiktokPage = () => import('../composables/TiktokPage.vue')
 const XPage = () => import('../composables/XPage.vue')
 const E_404Page = () => import('../cards/E_404Page.vue')
 const SettingsPage = () => import('../settings/index.vue')
+const LoginPage = () => import('../views/LoginPage.vue')
+const SignupPage = () => import('../views/SignupPage.vue')
 
 const routes = [
   {
@@ -37,7 +41,31 @@ const routes = [
     path: '/share',
     name: 'HandleShare',
     component: HandleSharePage,
-    props: true
+    props: true,
+    children: [
+          {
+            path: ':id',
+            name: 'ShareId',
+            component: SharedId,
+          },
+        ],
+  },
+  {
+    path: '/auth',
+    name: 'Auth',
+    component: AuthPage,
+    children: [
+      {
+        path: 'login',
+        name: 'Login',
+        component: LoginPage,
+      },
+       {
+        path: 'signup',
+        name: 'Signup',
+        component: SignupPage,
+      },
+    ]
   },
   {
     path: '/h',

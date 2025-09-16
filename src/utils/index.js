@@ -3,7 +3,7 @@ export let BASE_URL = "https://ezed.tera-in.top";
 function initUrl() {
   BASE_URL = window.origin;
 
-  const hosts = ["netlify", "vercel", "github"];
+  const hosts = ["netlify", "vercel", "github","localhost"];
 
   if (hosts.some(h => window.location.hostname.includes(h))) {
     BASE_URL = "https://ezed.tera-in.top";

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Form, File, UploadFile
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import FileResponse, HTMLResponse
 from fastapi import FastAPI, Request
@@ -22,6 +22,7 @@ if platform.system() == "Windows":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 from config import init_db  # Your DB init logic
+from routes.main import share_router,shares,save_file
 from routes.auth import auth_router
 from routes.instagram import instagram_router
 from routes.facebook import facebook_router
@@ -37,6 +38,7 @@ from config import Config, WEB_SERVER, BASE_SERVER
 
 ALLOWED_ORIGINS = [
     "http://localhost:5173",
+    "http://localhost:5174",
     "http://localhost:8000",
     "https://e-zed.netlify.app",
     "https://e-zed.tera-in.top",
@@ -46,8 +48,14 @@ ALLOWED_ORIGINS = [
 ]
 
 
-app = FastAPI()
-
+app = FastAPI(
+    title="My API",
+    description="Example FastAPI project",
+    version="1.0.0",
+    docs_url="/swagger",       # Swagger UI
+    redoc_url="/redocs",       # ReDoc UI
+    openapi_url="/openapi.json"
+)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
@@ -85,7 +93,7 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
         status_code=429, content={"detail": "Rate limit exceeded. Please wait."}
     )
 
-
+app.include_router(share_router,prefix="/api")
 app.include_router(instagram_router, prefix="/api/inst")
 app.include_router(facebook_router, prefix="/api/fb")
 app.include_router(tiktok_router, prefix="/api/tk")
@@ -117,12 +125,47 @@ async def serve_vue(full_path: str):
     return FileResponse(os.path.join(VUE_DIST_DIR, "index.html"))
 
 
-# ✅ Serve built assets correctly
 app.mount(
     "/static",
     StaticFiles(directory=os.path.join(VUE_DIST_DIR, "static")),
     name="static",
 )
+
+from typing import Optional
+from fastapi import FastAPI, Request, Form, File, UploadFile
+from typing import Optional, List
+from uuid import uuid4
+from fastapi.responses import RedirectResponse
+from datetime import datetime
+
+
+@app.post("/share")
+async def share(
+    request: Request,
+    title: Optional[str] = Form(None),
+    text: Optional[str] = Form(None),
+    url: Optional[str] = Form(None),
+    files: Optional[List[UploadFile]] = File(None),
+):
+    file_info = []
+    if files:
+        for f in files:
+            file_id = str(uuid4())
+            info = await save_file(f, file_id)
+            file_info.append(info)
+
+    share_id = str(uuid4())
+    shares[share_id] = {
+        "id": share_id,
+        "title": title,
+        "text": text,
+        "url": url,
+        "files": file_info,
+        "created_at": datetime.now().isoformat()
+    }
+
+    return RedirectResponse(url=f"/share/{share_id}", status_code=303)
+
 
 
 @app.on_event("startup")
