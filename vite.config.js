@@ -13,7 +13,46 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'robots.txt'],
-      manifest: false   // 👈 disable auto manifest
+      manifest: {
+        name: "e-zed",
+        short_name: "e-z",
+        description: "Download from TikTok, Instagram, YouTube, Facebook, X and more — share a link and get your music or video instantly.",
+        start_url: "/h",
+        display: "standalone",
+        background_color: "#ffffff",
+        theme_color: "#42b883",
+        icons: [
+          {
+            src: "/icons/icon-192x192.png",
+            sizes: "192x192",
+            type: "image/png"
+          },
+          {
+            src: "/icons/icon-512x512.png",
+            sizes: "512x512",
+            type: "image/png"
+          }
+        ],
+        share_target: {
+          action: "/api/share",
+          method: "POST",
+          enctype: "multipart/form-data",
+          params: {
+            title: "title",
+            text: "text",
+            url: "url",
+            files: [
+              {
+                name: "files",
+                accept: ["text/*", "image/*", "video/*", "application/*"]
+              }
+            ]
+          }
+        }
+      },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg}'] // ⚡ key fix
+      }
     })
   ],
 
