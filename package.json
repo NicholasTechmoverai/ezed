@@ -20,7 +20,6 @@
     "@vicons/utils": "^0.1.4",
     "@vueuse/core": "^13.6.0",
     "axios": "^1.11.0",
-    "flag-icon-css": "^4.1.7",
     "flag-icons": "^7.5.0",
     "idb": "^8.0.3",
     "pinia": "^3.0.3",
@@ -30,18 +29,18 @@
     "tailwindcss": "^4.1.11",
     "three": "^0.179.1",
     "vue": "^3.5.17",
-    "vue-flag-icon": "^2.1.0",
     "vue-i18n": "^11.1.11",
     "vue-router": "^4.5.1"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.0",
-    "i": "^0.3.7",
     "naive-ui": "^2.42.0",
-    "npm": "^11.5.1",
     "unocss": "^66.3.3",
     "vfonts": "^0.0.3",
     "vite": "^7.0.4",
     "vite-plugin-pwa": "^1.0.2"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }
